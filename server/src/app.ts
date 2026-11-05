@@ -1,5 +1,7 @@
 import express from "express";
 import { isChromaUp } from "./clients/chroma.js";
+import { adminRouter } from "./routes/admin.routes.js";
+import { errorHandler, notFound } from "./middleware/error.js";
 
 /**
  * Builds the Express app (routes + middleware) WITHOUT starting a server.
@@ -18,6 +20,12 @@ export function createApp() {
     const healthy = chroma === "ok";
     res.status(healthy ? 200 : 503).json({ status: healthy ? "ok" : "degraded", chroma });
   });
+
+  app.use("/api/v1/admin", adminRouter);
+
+  // These two must come last: they handle whatever the routes above didn't.
+  app.use(notFound);
+  app.use(errorHandler);
 
   return app;
 }
