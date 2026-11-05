@@ -9,7 +9,7 @@ import { z } from "zod";
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+  LOG_LEVEL: z.enum(["silent", "fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
   GEMINI_API_KEY: z.string({ error: "is required" }).min(1, "is required"),
   ADMIN_API_KEY: z.string({ error: "is required" }).min(16, "must be at least 16 characters"),
