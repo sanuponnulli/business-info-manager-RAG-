@@ -3,6 +3,7 @@ import { clearAdminKey, loadAdminKey, saveAdminKey } from "./adminKey";
 import { KeyGate } from "./components/KeyGate";
 import { HealthBadge } from "./components/HealthBadge";
 import { DocumentsPage } from "./pages/DocumentsPage";
+import { ChatPage } from "./pages/ChatPage";
 
 const TABS = [
   { id: "documents", label: "Documents" },
@@ -12,8 +13,10 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 /**
- * Top level: no key → the key screen; with a key → header, tabs and the
- * selected page. The pages themselves arrive in chunks F2–F4.
+ * Top level: no key → the key screen; with a key → header, tabs and pages.
+ *
+ * All pages stay mounted and inactive ones are just hidden, so switching
+ * tabs doesn't throw away a chat conversation or a running upload.
  */
 export function App() {
   const [adminKey, setAdminKey] = useState<string | null>(loadAdminKey);
@@ -55,9 +58,15 @@ export function App() {
       </nav>
 
       <main className="page">
-        {tab === "documents" && <DocumentsPage adminKey={adminKey} />}
-        {tab === "chat" && <Placeholder title="Test text chat" chunk="F3" />}
-        {tab === "voice" && <Placeholder title="Test voice" chunk="F4" />}
+        <div hidden={tab !== "documents"}>
+          <DocumentsPage adminKey={adminKey} />
+        </div>
+        <div hidden={tab !== "chat"}>
+          <ChatPage />
+        </div>
+        <div hidden={tab !== "voice"}>
+          <Placeholder title="Test voice" chunk="F4" />
+        </div>
       </main>
     </div>
   );

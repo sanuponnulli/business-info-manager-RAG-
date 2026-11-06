@@ -98,6 +98,33 @@ export function getJob(adminKey: string, jobId: string) {
   return request<Job>(`/api/v1/admin/documents/jobs/${encodeURIComponent(jobId)}`, {}, adminKey);
 }
 
+export interface ChatTurn {
+  role: "user" | "model";
+  text: string;
+}
+
+export interface Source {
+  /** The [n] the answer uses for this passage. */
+  n: number;
+  /** True if the answer actually cites [n]. */
+  cited: boolean;
+  text: string;
+  docId: string;
+  title: string;
+  page: number;
+  /** 0–1 similarity to the question. */
+  score: number;
+}
+
+/** The employee-facing text endpoint (no admin key needed). */
+export function ask(question: string, history: ChatTurn[]) {
+  return request<{ answer: string; sources: Source[] }>("/api/v1/chat/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, history }),
+  });
+}
+
 export function deleteDocument(adminKey: string, docId: string) {
   return request<{ docId: string; deletedChunks: number }>(
     `/api/v1/admin/documents/${encodeURIComponent(docId)}`,

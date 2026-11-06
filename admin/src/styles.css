@@ -309,3 +309,110 @@ td.actions button {
 .status-failed {
   color: var(--danger);
 }
+
+/* --- Chat --- */
+
+.chat .row {
+  align-items: flex-start;
+}
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  min-height: 240px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+.messages .empty {
+  margin: auto;
+  text-align: center;
+}
+.bubble {
+  max-width: min(680px, 90%);
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.bubble.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.bubble.model {
+  align-self: flex-start;
+}
+.bubble.failed {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.bubble.pending {
+  color: var(--muted);
+  font-style: italic;
+}
+.bubble-text {
+  margin: 0;
+  white-space: pre-wrap; /* keep the model's line breaks and bullet lines */
+}
+.meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sources {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+.sources > summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.sources ol {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.sources li {
+  border-left: 3px solid var(--border);
+  padding-left: 0.6rem;
+}
+.sources li.cited {
+  border-left-color: var(--ok);
+}
+.sources li summary {
+  cursor: pointer;
+}
+.badge {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cited-tag {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ok);
+}
+blockquote {
+  margin: 0.4rem 0 0.2rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.composer {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+.composer textarea {
+  resize: vertical;
+}
