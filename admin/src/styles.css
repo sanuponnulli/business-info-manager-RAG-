@@ -416,3 +416,101 @@ blockquote {
 .composer textarea {
   resize: vertical;
 }
+
+/* --- Voice --- */
+
+.voice-connection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  color: var(--muted);
+}
+.pill-connecting {
+  color: var(--warn);
+}
+.pill-ready {
+  color: var(--ok);
+}
+
+.voice-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.talk {
+  font-size: 1.05rem;
+  padding: 0.75rem 1.5rem;
+  min-width: 190px;
+}
+.talk.recording {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.level {
+  width: 140px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.level-fill {
+  height: 100%;
+  background: var(--ok);
+  transition: width 80ms linear;
+}
+
+.voice .composer {
+  margin-bottom: 1rem;
+}
+
+.voice-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.entry {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+}
+.entry .who {
+  font-weight: 700;
+  color: var(--muted);
+}
+.entry-user {
+  background: var(--bg);
+}
+.entry-model {
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+}
+.entry-tool {
+  color: var(--warn);
+}
+.entry-info {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.entry-error {
+  color: var(--danger);
+}

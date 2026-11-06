@@ -4,6 +4,7 @@ import { KeyGate } from "./components/KeyGate";
 import { HealthBadge } from "./components/HealthBadge";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { ChatPage } from "./pages/ChatPage";
+import { VoicePage } from "./pages/VoicePage";
 
 const TABS = [
   { id: "documents", label: "Documents" },
@@ -65,18 +66,9 @@ export function App() {
           <ChatPage />
         </div>
         <div hidden={tab !== "voice"}>
-          <Placeholder title="Test voice" chunk="F4" />
+          <VoicePage active={tab === "voice"} />
         </div>
       </main>
     </div>
-  );
-}
-
-function Placeholder({ title, chunk }: { title: string; chunk: string }) {
-  return (
-    <section className="card">
-      <h2>{title}</h2>
-      <p className="muted">Coming in chunk {chunk}.</p>
-    </section>
   );
 }
