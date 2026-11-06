@@ -1,6 +1,7 @@
 import express from "express";
 import { isChromaUp } from "./clients/chroma.js";
 import { adminRouter } from "./routes/admin.routes.js";
+import { chatRouter } from "./routes/chat.routes.js";
 import { errorHandler, notFound } from "./middleware/error.js";
 
 /**
@@ -22,6 +23,7 @@ export function createApp() {
   });
 
   app.use("/api/v1/admin", adminRouter);
+  app.use("/api/v1/chat", chatRouter);
 
   // These two must come last: they handle whatever the routes above didn't.
   app.use(notFound);

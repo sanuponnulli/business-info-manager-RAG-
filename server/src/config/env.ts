@@ -18,8 +18,10 @@ const EnvSchema = z.object({
   CHROMA_COLLECTION: z.string().min(1).default("handbook-collection"),
 
   EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
-  CHAT_MODEL: z.string().default("gemini-2.5-flash"),
-  LIVE_MODEL: z.string().default("gemini-2.5-flash-native-audio-preview-12-2025"),
+  CHAT_MODEL: z.string().default("gemini-3.8-flash"),
+  // Used when CHAT_MODEL is overloaded or failing. Set it empty to disable.
+  CHAT_FALLBACK_MODEL: z.string().default("gemini-3.5-flash"),
+  LIVE_MODEL: z.string().default("gemini-3.8-live"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
