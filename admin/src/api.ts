@@ -63,3 +63,45 @@ export async function getHealth(): Promise<Health> {
 export function listDocuments(adminKey: string) {
   return request<{ documents: DocumentSummary[] }>("/api/v1/admin/documents", {}, adminKey).then((r) => r.documents);
 }
+
+export type JobStatus = "queued" | "processing" | "done" | "failed";
+
+export interface Job {
+  id: string;
+  docId: string;
+  title: string;
+  status: JobStatus;
+  chunks?: number;
+  error?: string;
+  createdAt: string;
+  finishedAt?: string;
+}
+
+/**
+ * Uploads a PDF. The server answers straight away (202) with a job id;
+ * the actual processing happens in the background, so poll getJob().
+ */
+export function uploadDocument(adminKey: string, file: File, fields: { title?: string; docId?: string }) {
+  const form = new FormData();
+  form.append("file", file);
+  if (fields.title) form.append("title", fields.title);
+  if (fields.docId) form.append("docId", fields.docId);
+  // No Content-Type header: the browser sets multipart/form-data with the right boundary itself.
+  return request<{ jobId: string; docId: string; title: string; status: JobStatus }>(
+    "/api/v1/admin/documents",
+    { method: "POST", body: form },
+    adminKey,
+  );
+}
+
+export function getJob(adminKey: string, jobId: string) {
+  return request<Job>(`/api/v1/admin/documents/jobs/${encodeURIComponent(jobId)}`, {}, adminKey);
+}
+
+export function deleteDocument(adminKey: string, docId: string) {
+  return request<{ docId: string; deletedChunks: number }>(
+    `/api/v1/admin/documents/${encodeURIComponent(docId)}`,
+    { method: "DELETE" },
+    adminKey,
+  );
+}

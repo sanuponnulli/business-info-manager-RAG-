@@ -209,3 +209,103 @@ label {
 .health-offline .dot {
   background: var(--danger);
 }
+
+/* --- Shared layout helpers --- */
+
+.stack {
+  display: grid;
+  gap: 1.25rem;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 1rem;
+}
+.mt {
+  margin-top: 1rem;
+}
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.05rem 0.35rem;
+}
+
+/* --- Tables --- */
+
+.table-wrap {
+  overflow-x: auto; /* wide tables scroll inside the card on phones */
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+td.actions {
+  text-align: right;
+}
+td.actions button {
+  padding: 0.3rem 0.75rem;
+}
+
+/* --- Upload jobs --- */
+
+.jobs {
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem 0 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.jobs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.status-queued,
+.status-processing {
+  color: var(--warn);
+}
+.status-done {
+  color: var(--ok);
+}
+.status-failed {
+  color: var(--danger);
+}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { clearAdminKey, loadAdminKey, saveAdminKey } from "./adminKey";
 import { KeyGate } from "./components/KeyGate";
 import { HealthBadge } from "./components/HealthBadge";
+import { DocumentsPage } from "./pages/DocumentsPage";
 
 const TABS = [
   { id: "documents", label: "Documents" },
@@ -54,7 +55,7 @@ export function App() {
       </nav>
 
       <main className="page">
-        {tab === "documents" && <Placeholder title="Documents" chunk="F2" />}
+        {tab === "documents" && <DocumentsPage adminKey={adminKey} />}
         {tab === "chat" && <Placeholder title="Test text chat" chunk="F3" />}
         {tab === "voice" && <Placeholder title="Test voice" chunk="F4" />}
       </main>
