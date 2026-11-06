@@ -26,7 +26,7 @@ export type ServerMessage =
   | { type: "ready" }
   /** A slice of the spoken reply: base64 of raw PCM16, 24 kHz, mono. */
   | { type: "audio"; data: string }
-  /** Text of what was said, for showing captions. */
+  /** Text of what was said, for captions. Arrives in fragments: append them until turn_complete. */
   | { type: "transcript"; role: "user" | "model"; text: string }
   /** The agent is searching the handbook (so the app can show "Searching…"). */
   | { type: "tool"; name: string; query: string }

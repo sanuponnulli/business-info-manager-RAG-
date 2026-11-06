@@ -2,6 +2,7 @@ import type { Server } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { logger } from "../lib/logger.js";
 import { parseClientMessage, type ClientMessage, type ServerMessage } from "./protocol.js";
+import { openLiveBridge, type LiveBridge } from "./liveSession.js";
 
 export const VOICE_PATH = "/ws/voice-agent";
 
@@ -28,7 +29,7 @@ export function attachVoiceAgent(server: Server): WebSocketServer {
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
   });
 
-  wss.on("connection", (ws) => handleConnection(ws));
+  wss.on("connection", (ws) => void handleConnection(ws));
   return wss;
 }
 
@@ -37,13 +38,19 @@ export function send(ws: WebSocket, message: ServerMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
 }
 
-function handleConnection(ws: WebSocket): void {
+/**
+ * One client connection = one Gemini Live session. This function wires the
+ * two together and makes sure that when either side goes away, the other
+ * is closed too (no orphaned Gemini sessions costing money).
+ */
+async function handleConnection(ws: WebSocket): Promise<void> {
   const log = logger.child({ ws: Math.random().toString(36).slice(2, 8) });
   log.info("Voice client connected");
 
-  // Chunk 8b replaces this echo with a Gemini Live session.
-  send(ws, { type: "ready" });
+  let bridge: LiveBridge | null = null;
+  let ready = false;
 
+  // Register client listeners first, so nothing sent during setup is lost.
   ws.on("message", (data, isBinary) => {
     if (isBinary) {
       send(ws, { type: "error", code: "bad_message", message: "Send JSON text frames, not binary" });
@@ -54,24 +61,56 @@ function handleConnection(ws: WebSocket): void {
       send(ws, { type: "error", code: "bad_message", message: parsed.error });
       return;
     }
-    handleClientMessage(ws, parsed.message);
+    if (!bridge || !ready) {
+      send(ws, { type: "error", code: "not_ready", message: 'Wait for {"type":"ready"} before sending' });
+      return;
+    }
+    forwardToGemini(bridge, parsed.message);
   });
 
-  ws.on("close", (code) => log.info({ code }, "Voice client disconnected"));
+  ws.on("close", (code) => {
+    log.info({ code }, "Voice client disconnected");
+    bridge?.close(); // client left → end the Gemini session
+  });
   ws.on("error", (err) => log.warn({ err }, "Voice socket error"));
+
+  try {
+    bridge = await openLiveBridge(
+      {
+        onReady: () => {
+          ready = true;
+          send(ws, { type: "ready" });
+        },
+        onMessage: (message) => send(ws, message),
+        onClose: (reason) => {
+          // Gemini left → tell the client why, then hang up.
+          log.warn({ reason }, "Gemini Live session closed");
+          send(ws, { type: "error", code: "session_closed", message: reason });
+          ws.close(1011, "Voice session ended");
+        },
+      },
+      log,
+    );
+    // The client may have hung up while we were still connecting.
+    if (ws.readyState !== WebSocket.OPEN) bridge.close();
+  } catch (err) {
+    log.error({ err }, "Could not open Gemini Live session");
+    send(ws, { type: "error", code: "upstream_unavailable", message: "Voice service is unavailable, try again later" });
+    ws.close(1011, "Voice service unavailable");
+  }
 }
 
-/** Temporary echo for 8a: proves messages flow both ways. */
-function handleClientMessage(ws: WebSocket, message: ClientMessage): void {
+/** Our protocol message → the matching Gemini call. */
+function forwardToGemini(bridge: LiveBridge, message: ClientMessage): void {
   switch (message.type) {
-    case "text":
-      send(ws, { type: "transcript", role: "model", text: `echo: ${message.text}` });
-      break;
     case "audio":
-      send(ws, { type: "audio", data: message.data }); // play the user's own audio back
+      bridge.sendAudio(message.data);
+      break;
+    case "text":
+      bridge.sendText(message.text);
       break;
     case "end":
-      send(ws, { type: "turn_complete" });
+      bridge.endAudio();
       break;
   }
 }
