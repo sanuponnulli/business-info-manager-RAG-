@@ -28,7 +28,7 @@ export interface DocumentSummary {
 }
 
 /** What we store next to every chunk in ChromaDB. */
-interface ChunkMetadata {
+export interface ChunkMetadata {
   docId: string;
   title: string;
   page: number;
