@@ -17,6 +17,16 @@ const EnvSchema = z.object({
   CHROMA_URL: z.string().url().default("http://localhost:8000"),
   CHROMA_COLLECTION: z.string().min(1).default("handbook-collection"),
 
+  // Browser origins allowed to call the API (the React admin app), comma-separated.
+  CORS_ORIGINS: z
+    .string()
+    .default("http://localhost:5173")
+    .transform((s) => s.split(",").map((o) => o.trim()).filter(Boolean)),
+
+  // Voice sessions each hold an open Gemini Live connection, which costs money.
+  VOICE_MAX_SESSIONS: z.coerce.number().int().positive().default(20),
+  VOICE_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
+
   EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
   CHAT_MODEL: z.string().default("gemini-3.8-flash"),
   // Used when CHAT_MODEL is overloaded or failing. Set it empty to disable.

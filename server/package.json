@@ -17,6 +17,7 @@
     "@google/genai": "^2.32.0",
     "@langchain/textsplitters": "^1.0.2",
     "chromadb": "^3.5.0",
+    "cors": "^2.8.6",
     "express": "^5.3.0",
     "multer": "^2.5.0",
     "pdf-parse": "^2.4.5",
@@ -25,6 +26,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.6",

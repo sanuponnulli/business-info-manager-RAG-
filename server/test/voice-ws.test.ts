@@ -123,3 +123,63 @@ describe("voice WebSocket ↔ Gemini bridge", () => {
     expect(err.message).toMatch(/404/);
   });
 });
+
+describe("voice limits", () => {
+  // A second server with tiny limits so the tests run fast.
+  let limited: http.Server;
+  let url: string;
+  beforeAll(async () => {
+    limited = http.createServer();
+    attachVoiceAgent(limited, { maxSessions: 1, idleTimeoutMs: 300 });
+    await new Promise<void>((resolve) => limited.listen(0, resolve));
+    url = `ws://localhost:${(limited.address() as AddressInfo).port}${VOICE_PATH}`;
+  });
+  afterAll(() => new Promise<void>((resolve) => limited.close(() => resolve())));
+
+  /** Connects and resolves with every message plus the close code. */
+  function session() {
+    const ws = new WebSocket(url);
+    const messages: Record<string, unknown>[] = [];
+    ws.on("message", (d) => messages.push(JSON.parse(d.toString())));
+    const closed = new Promise<number>((resolve) => ws.once("close", resolve));
+    return { ws, messages, closed };
+  }
+
+  it("refuses a session over the cap with 'server_busy'", async () => {
+    const first = session();
+    await expect.poll(() => first.messages[0]).toEqual({ type: "ready" });
+
+    const second = session();
+    expect(await second.closed).toBe(1013);
+    expect(second.messages[0]).toMatchObject({ type: "error", code: "server_busy" });
+
+    first.ws.close();
+    await first.closed;
+  });
+
+  it("closes a session that stays idle", async () => {
+    const s = session();
+    expect(await s.closed).toBe(1000);
+    expect(s.messages.at(-1)).toMatchObject({ type: "error", code: "idle_timeout" });
+  });
+
+  it("keeps a session open while there is traffic", async () => {
+    const s = session();
+    await expect.poll(() => s.messages[0]).toEqual({ type: "ready" });
+    for (let i = 0; i < 4; i++) {
+      await new Promise((r) => setTimeout(r, 150)); // 600 ms total, but never 300 ms silent
+      s.ws.send(JSON.stringify({ type: "text", text: "still here" }));
+    }
+    expect(s.ws.readyState).toBe(WebSocket.OPEN);
+    s.ws.close();
+    await s.closed;
+  });
+});
+
+describe("voice path", () => {
+  it("still refuses other paths", async () => {
+    const ws = new WebSocket(`${base}/ws/something-else`);
+    const err = await new Promise<Error>((resolve) => ws.once("error", resolve));
+    expect(err.message).toMatch(/404/);
+  });
+});

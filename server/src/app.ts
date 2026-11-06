@@ -1,8 +1,11 @@
 import express from "express";
+import cors from "cors";
+import { env } from "./config/env.js";
 import { isChromaUp } from "./clients/chroma.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import { chatRouter } from "./routes/chat.routes.js";
 import { errorHandler, notFound } from "./middleware/error.js";
+import { requestLog } from "./middleware/requestLog.js";
 
 /**
  * Builds the Express app (routes + middleware) WITHOUT starting a server.
@@ -12,7 +15,24 @@ import { errorHandler, notFound } from "./middleware/error.js";
 export function createApp() {
   const app = express();
 
-  app.use(express.json());
+  // Don't advertise "X-Powered-By: Express" to the world.
+  app.disable("x-powered-by");
+
+  app.use(requestLog);
+
+  // Browsers block a web page from calling an API on another origin unless
+  // the API allows it. This allows only the origins listed in CORS_ORIGINS
+  // (the React admin app). Mobile apps and curl aren't affected by CORS.
+  app.use(
+    cors({
+      origin: env.CORS_ORIGINS,
+      allowedHeaders: ["Content-Type", "x-admin-key"],
+      exposedHeaders: ["Location"], // so the admin app can read the job URL after an upload
+    }),
+  );
+
+  // JSON bodies are small questions; refuse anything bigger than 100 KB.
+  app.use(express.json({ limit: "100kb" }));
 
   // 200 when every dependency is reachable, 503 ("Service Unavailable") otherwise,
   // so a load balancer or uptime monitor can tell the server isn't really usable.

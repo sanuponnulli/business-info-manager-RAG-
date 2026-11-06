@@ -29,9 +29,10 @@ function toHttpError(err: unknown): HttpError {
       : new HttpError(400, "bad_upload", err.message);
   }
 
-  // Malformed JSON body, reported by express.json().
-  if (typeof err === "object" && err !== null && "type" in err && err.type === "entity.parse.failed") {
-    return new HttpError(400, "invalid_json", "Request body is not valid JSON");
+  // Problems with the JSON body, reported by express.json().
+  if (typeof err === "object" && err !== null && "type" in err) {
+    if (err.type === "entity.parse.failed") return new HttpError(400, "invalid_json", "Request body is not valid JSON");
+    if (err.type === "entity.too.large") return new HttpError(413, "body_too_large", "Request body is larger than 100 KB");
   }
 
   // Anything else is a bug or an outage. Don't leak internal details to the client.
