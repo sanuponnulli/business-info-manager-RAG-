@@ -14,6 +14,8 @@ export interface Job {
   status: JobStatus;
   /** Number of chunks stored, once done. */
   chunks?: number;
+  /** While processing: how many chunks have been embedded so far, out of how many. */
+  progress?: { embedded: number; total: number };
   /** Why it failed, if it failed. */
   error?: string;
   createdAt: string;
@@ -95,7 +97,9 @@ async function runJob(job: Job, pdf: Buffer): Promise<void> {
   const log = logger.child({ jobId: job.id, docId: job.docId });
   log.info("Ingestion started");
   try {
-    job.chunks = await ingestDocument(pdf, job.docId, job.title);
+    job.chunks = await ingestDocument(pdf, job.docId, job.title, (embedded, total) => {
+      job.progress = { embedded, total };
+    });
     job.status = "done";
     log.info({ chunks: job.chunks }, "Ingestion finished");
   } catch (err) {
@@ -126,12 +130,19 @@ function pruneFinishedJobs(): void {
  * the old version and write the new one, so a failed upload leaves the
  * previous version of the document fully searchable.
  */
-export async function ingestDocument(pdf: Buffer, docId: string, title: string): Promise<number> {
+export async function ingestDocument(
+  pdf: Buffer,
+  docId: string,
+  title: string,
+  onProgress?: (embedded: number, total: number) => void,
+): Promise<number> {
   const pages = await extractPages(pdf);
   const chunks = await chunkPages(pages);
+  onProgress?.(0, chunks.length);
   const vectors = await embedDocuments(
     chunks.map((c) => c.text),
     title,
+    onProgress,
   );
 
   const uploadedAt = new Date().toISOString();

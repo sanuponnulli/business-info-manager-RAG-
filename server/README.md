@@ -10,7 +10,7 @@ Flutter app ──WS /ws/voice-agent──► Gemini Live ──tool: search_han
 ```
 
 - **Stack:** Node 20+, TypeScript, Express 5, `ws`, `@google/genai`, ChromaDB (Docker).
-- **Models:** `gemini-embedding-001` (3072-d vectors), `gemini-3.8-flash` for text chat with `gemini-3.5-flash` as a fallback, and `gemini-3.8-live` for voice. All of them can be changed in `.env`.
+- **Models:** `gemini-embedding-001` (3072-d vectors), `gemini-3.5-flash` for text chat with `gemini-3.8-flash` as a fallback, and `gemini-3.8-live` for voice. All of them can be changed in `.env`.
 
 ## Setup
 
@@ -188,7 +188,7 @@ The server also closes with **1001** when it shuts down, and pings every 30 s to
 | Chunks → vectors | `src/services/embedding.service.ts` | Batches of 100, retried on 429/5xx. `RETRIEVAL_DOCUMENT` for stored chunks, `RETRIEVAL_QUERY` for questions |
 | Ingestion | `src/services/ingestion.service.ts` | In-memory queue, one job at a time. **Embeds first, then deletes the old version and adds the new one**, so a failed upload never empties a document |
 | Retrieval | `src/services/rag.service.ts` | `retrieveContext(query, k=3)`: cosine search, then numbered `[n]` passages. Shared by text and voice |
-| Text answers | `src/services/answer.service.ts` | Grounding prompt, then `CHAT_MODEL`, falling back to `CHAT_FALLBACK_MODEL` on 5xx/429 |
+| Text answers | `src/services/answer.service.ts` | Grounding prompt, then `CHAT_MODEL` (one try, 12 s limit), falling back to `CHAT_FALLBACK_MODEL` on 5xx/429/timeout |
 | Voice | `src/ws/voiceAgent.ts`, `liveSession.ts`, `tools.ts` | One Gemini Live session per client. Gemini calls `search_handbook` → `retrieveContext` |
 
 ### Known limitations

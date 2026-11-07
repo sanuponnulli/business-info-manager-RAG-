@@ -39,6 +39,8 @@ export function createApp() {
   app.get("/health", async (_req, res) => {
     const chroma = (await isChromaUp()) ? "ok" : "down";
     const healthy = chroma === "ok";
+    // Always a fresh answer: a cached "ok" would hide an outage.
+    res.set("Cache-Control", "no-store");
     res.status(healthy ? 200 : 503).json({ status: healthy ? "ok" : "degraded", chroma });
   });
 

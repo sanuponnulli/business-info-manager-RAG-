@@ -57,28 +57,36 @@ export async function answerQuestion(question: string, history: ChatTurn[] = [])
 }
 
 /**
- * Asks CHAT_MODEL; if it's still failing with a temporary error after one
- * retry (e.g. 503 "high demand"), asks CHAT_FALLBACK_MODEL instead.
- * A person is waiting for this answer, so we retry less than ingestion does.
+ * A person is waiting for this answer, so we don't sit on a struggling model:
+ * CHAT_MODEL gets ONE try with a short time limit. If that fails with a
+ * temporary error (503 "high demand", 504, timeout, rate limit), the question
+ * goes straight to CHAT_FALLBACK_MODEL, which gets the normal time limit and
+ * one retry. Worst case is roughly 12 s + one fallback answer, not minutes.
  */
+const PRIMARY = { retries: 0, timeoutMs: 12_000 };
+const FALLBACK = { retries: 1, timeoutMs: 30_000 };
+
 async function generateWithFallback(contents: Content[]): Promise<string> {
+  const fallback = env.CHAT_FALLBACK_MODEL;
+  const hasFallback = Boolean(fallback) && fallback !== env.CHAT_MODEL;
   try {
-    return await generate(env.CHAT_MODEL, contents);
+    return await generate(env.CHAT_MODEL, contents, hasFallback ? PRIMARY : FALLBACK);
   } catch (err) {
-    const fallback = env.CHAT_FALLBACK_MODEL;
-    if (!fallback || fallback === env.CHAT_MODEL || !isRetryable(err)) throw err;
-    logger.warn({ err, model: env.CHAT_MODEL, fallback }, "Chat model unavailable, using fallback");
-    return generate(fallback, contents);
+    if (!hasFallback || !isRetryable(err)) throw err;
+    const reason = err instanceof Error ? err.name === "AbortError" ? "timed out" : err.message.slice(0, 120) : String(err);
+    logger.warn({ model: env.CHAT_MODEL, fallback, reason }, "Chat model unavailable, using fallback");
+    return generate(fallback, contents, FALLBACK);
   }
 }
 
-async function generate(model: string, contents: Content[]): Promise<string> {
+async function generate(model: string, contents: Content[], limits: { retries: number; timeoutMs: number }): Promise<string> {
   const response = await withRetry(
     () =>
       gemini.models.generateContent({
         model,
         contents,
         config: {
+          httpOptions: { timeout: limits.timeoutMs },
           systemInstruction: SYSTEM_INSTRUCTION,
           maxOutputTokens: 1024,
           // Gemini 3 "thinks" before answering. LOW keeps replies fast; reading a
@@ -87,7 +95,7 @@ async function generate(model: string, contents: Content[]): Promise<string> {
           thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         },
       }),
-    { label: `Gemini generateContent (${model})`, retries: 1 },
+    { label: `Gemini generateContent (${model})`, retries: limits.retries, maxDelayMs: 5_000 },
   );
 
   const answer = response.text?.trim();

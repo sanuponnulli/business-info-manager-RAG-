@@ -72,6 +72,8 @@ export interface Job {
   title: string;
   status: JobStatus;
   chunks?: number;
+  /** While processing: chunks embedded so far, out of the total. */
+  progress?: { embedded: number; total: number };
   error?: string;
   createdAt: string;
   finishedAt?: string;

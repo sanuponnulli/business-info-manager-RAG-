@@ -4,6 +4,22 @@ import { getJob, uploadDocument, type Job } from "../api";
 const POLL_MS = 1000;
 
 /**
+ * "Embedding 300 / 700 chunks" with a bar. Large documents on Gemini's free
+ * tier (100 embeddings a minute) take a few minutes; the bar shows it's moving.
+ */
+function JobProgress({ job }: { job: Job }) {
+  if (!job.progress) return <>Reading and chunking the PDF…</>;
+  const { embedded, total } = job.progress;
+  if (embedded === total) return <>Saving {total} chunks…</>;
+  return (
+    <span className="job-progress">
+      <progress value={embedded} max={total} /> Embedding {embedded} / {total} chunks
+      {total > 100 && <span className="muted"> (free tier: about 100 per minute)</span>}
+    </span>
+  );
+}
+
+/**
  * Upload form plus a list of this session's uploads with live status.
  *
  * Uploading is two steps on the server: the POST returns at once with a
@@ -112,7 +128,8 @@ export function UploadPanel({ adminKey, onDocumentReady }: { adminKey: string; o
               <span className="muted">
                 {job.status === "done" && `${job.chunks} chunks stored`}
                 {job.status === "failed" && <span className="error">{job.error}</span>}
-                {(job.status === "queued" || job.status === "processing") && "Parsing, chunking and embedding…"}
+                {job.status === "queued" && "Waiting for the previous upload to finish…"}
+                {job.status === "processing" && <JobProgress job={job} />}
               </span>
             </li>
           ))}

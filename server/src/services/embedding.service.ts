@@ -1,6 +1,6 @@
 import { gemini } from "../clients/gemini.js";
 import { env } from "../config/env.js";
-import { withRetry } from "../lib/retry.js";
+import { withRetry, type RetryOptions } from "../lib/retry.js";
 
 /** gemini-embedding-001 returns 3072 numbers per text at full size. */
 export const EMBEDDING_DIMENSIONS = 3072;
@@ -16,7 +16,16 @@ const BATCH_SIZE = 100;
  */
 type TaskType = "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY";
 
+/**
+ * Uploads run in the background, so they can afford to wait out a rate
+ * limit (the free tier allows 100 embeddings a minute and asks us to wait
+ * up to a minute). A question has a person waiting, so it gives up fast.
+ */
+const DOCUMENT_RETRY: RetryOptions = { retries: 8, maxDelayMs: 90_000 };
+const QUERY_RETRY: RetryOptions = { retries: 2, maxDelayMs: 5_000 };
+
 async function embedBatch(texts: string[], taskType: TaskType, title?: string): Promise<number[][]> {
+  const retry = taskType === "RETRIEVAL_DOCUMENT" ? DOCUMENT_RETRY : QUERY_RETRY;
   const response = await withRetry(
     () =>
       gemini.models.embedContent({
@@ -29,7 +38,7 @@ async function embedBatch(texts: string[], taskType: TaskType, title?: string): 
           ...(taskType === "RETRIEVAL_DOCUMENT" && title ? { title } : {}),
         },
       }),
-    { label: "Gemini embedContent" },
+    { ...retry, label: "Gemini embedContent" },
   );
 
   const vectors = (response.embeddings ?? []).map((e) => e.values ?? []);
@@ -49,13 +58,19 @@ async function embedBatch(texts: string[], taskType: TaskType, title?: string): 
 /**
  * Embeds document chunks for storage. Splits the input into batches of 100
  * and sends them one after another (sequentially keeps us under rate limits).
- * The output order always matches the input order.
+ * The output order always matches the input order. `onProgress` reports
+ * how many texts are done after each batch, so a long upload can show progress.
  */
-export async function embedDocuments(texts: string[], title?: string): Promise<number[][]> {
+export async function embedDocuments(
+  texts: string[],
+  title?: string,
+  onProgress?: (done: number, total: number) => void,
+): Promise<number[][]> {
   const vectors: number[][] = [];
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE);
     vectors.push(...(await embedBatch(batch, "RETRIEVAL_DOCUMENT", title)));
+    onProgress?.(vectors.length, texts.length);
   }
   return vectors;
 }

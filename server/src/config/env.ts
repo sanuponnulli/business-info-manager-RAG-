@@ -28,9 +28,9 @@ const EnvSchema = z.object({
   VOICE_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
 
   EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
-  CHAT_MODEL: z.string().default("gemini-3.8-flash"),
+  CHAT_MODEL: z.string().default("gemini-3.5-flash"),
   // Used when CHAT_MODEL is overloaded or failing. Set it empty to disable.
-  CHAT_FALLBACK_MODEL: z.string().default("gemini-3.5-flash"),
+  CHAT_FALLBACK_MODEL: z.string().default("gemini-3.8-flash"),
   LIVE_MODEL: z.string().default("gemini-3.8-live"),
 });
 

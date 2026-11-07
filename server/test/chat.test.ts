@@ -46,20 +46,31 @@ describe("markCitations", () => {
 describe("answerQuestion fallback", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("falls back to the backup model when the main one is overloaded", async () => {
-    vi.useFakeTimers();
-    const overloaded = new ApiError({ message: "high demand", status: 503 });
+  it("goes straight to the backup model when the main one is overloaded (no retry)", async () => {
     generateContent
-      .mockRejectedValueOnce(overloaded) // main model, first try
-      .mockRejectedValueOnce(overloaded) // main model, retry
+      .mockRejectedValueOnce(new ApiError({ message: "high demand", status: 503 })) // main model, one try
       .mockResolvedValueOnce({ text: "Ten days [1]." } as never); // fallback model
 
-    const pending = answerQuestion("How many sick days?");
-    await vi.runAllTimersAsync();
-
-    expect((await pending).answer).toBe("Ten days [1].");
+    expect((await answerQuestion("How many sick days?")).answer).toBe("Ten days [1].");
     const models = generateContent.mock.calls.map(([args]) => args.model);
-    expect(models).toEqual(["gemini-3.8-flash", "gemini-3.8-flash", "gemini-3.5-flash"]);
+    expect(models).toEqual(["gemini-3.5-flash", "gemini-3.8-flash"]);
+  });
+
+  it("falls back when the main model times out", async () => {
+    generateContent
+      .mockRejectedValueOnce(new DOMException("This operation was aborted", "AbortError"))
+      .mockResolvedValueOnce({ text: "Ten days [1]." } as never);
+
+    expect((await answerQuestion("How many sick days?")).answer).toBe("Ten days [1].");
+  });
+
+  it("gives the main model a short time limit and the fallback a longer one", async () => {
+    generateContent
+      .mockRejectedValueOnce(new ApiError({ message: "timeout", status: 504 }))
+      .mockResolvedValueOnce({ text: "ok" } as never);
+    await answerQuestion("q");
+    const timeouts = generateContent.mock.calls.map(([args]) => args.config?.httpOptions?.timeout);
+    expect(timeouts).toEqual([12_000, 30_000]);
   });
 });
 

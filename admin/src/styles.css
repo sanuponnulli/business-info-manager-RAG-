@@ -514,3 +514,14 @@ blockquote {
 .entry-error {
   color: var(--danger);
 }
+
+.job-progress {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.job-progress progress {
+  width: 120px;
+  accent-color: var(--accent);
+}
