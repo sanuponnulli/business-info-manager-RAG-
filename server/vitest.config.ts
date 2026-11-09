@@ -10,6 +10,7 @@ export default defineConfig({
       LOG_LEVEL: "silent",
       GEMINI_API_KEY: "test-key",
       ADMIN_API_KEY: "test-admin-key-0123456789",
+      JWT_SECRET: "test-jwt-secret-0123456789abcdef0123456789",
     },
   },
 });

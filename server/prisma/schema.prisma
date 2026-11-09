@@ -1,0 +1,244 @@
+// The HR system's database: people, org structure, leave, pay and benefits.
+//
+// Naming: models and fields are camelCase in TypeScript; @map/@@map store
+// them as snake_case in Postgres, so hand-written SQL (and SQL tools later)
+// reads naturally: SELECT first_name FROM employees.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Enums -----------------------------------------------------------------
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  HR_ADMIN
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  PERSONAL
+  PARENTAL
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum BenefitCategory {
+  HEALTH
+  DENTAL
+  VISION
+  LIFE
+  RETIREMENT
+}
+
+enum CoverageLevel {
+  EMPLOYEE_ONLY
+  EMPLOYEE_SPOUSE
+  FAMILY
+}
+
+// --- Organisation ----------------------------------------------------------
+
+/// An office. Decides an employee's public holidays, currency and timezone.
+model Location {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique // "DXB", "COK", ...
+  name      String
+  city      String
+  country   String     @db.Char(2) // ISO 3166-1 alpha-2
+  timezone  String // IANA, e.g. "Asia/Dubai"
+  currency  String     @db.Char(3) // ISO 4217, e.g. "AED"
+  employees Employee[]
+  holidays  Holiday[]
+
+  @@map("locations")
+}
+
+model Department {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique // "ENG", "HR", ...
+  name      String
+  headId    Int?       @unique @map("head_id")
+  head      Employee?  @relation("DepartmentHead", fields: [headId], references: [id])
+  employees Employee[] @relation("DepartmentMembers")
+
+  @@map("departments")
+}
+
+model Employee {
+  id              Int            @id @default(autoincrement())
+  employeeCode    String         @unique @map("employee_code") // "E0042"
+  email           String         @unique
+  passwordHash    String         @map("password_hash")
+  firstName       String         @map("first_name")
+  lastName        String         @map("last_name")
+  jobTitle        String         @map("job_title")
+  phone           String?
+  role            Role           @default(EMPLOYEE)
+  employmentType  EmploymentType @default(FULL_TIME) @map("employment_type")
+  status          EmployeeStatus @default(ACTIVE)
+  hireDate        DateTime       @map("hire_date") @db.Date
+  /// Last working day; set only when status is TERMINATED.
+  terminationDate DateTime?      @map("termination_date") @db.Date
+  departmentId    Int            @map("department_id")
+  department      Department     @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  locationId      Int            @map("location_id")
+  location        Location       @relation(fields: [locationId], references: [id])
+  managerId       Int?           @map("manager_id")
+  manager         Employee?      @relation("Reporting", fields: [managerId], references: [id])
+  directReports   Employee[]     @relation("Reporting")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  headOfDepartment   Department?         @relation("DepartmentHead")
+  leaveBalances      LeaveBalance[]
+  leaveRequests      LeaveRequest[]      @relation("Requester")
+  decidedLeave       LeaveRequest[]      @relation("Approver")
+  payslips           Payslip[]
+  benefitEnrollments BenefitEnrollment[]
+
+  @@index([departmentId])
+  @@index([locationId])
+  @@index([managerId])
+  @@index([lastName, firstName])
+  @@map("employees")
+}
+
+// --- Leave -----------------------------------------------------------------
+
+/// One row per employee, leave type and year.
+/// remaining = entitled + carriedOver - used  (pending requests not yet subtracted)
+model LeaveBalance {
+  id          Int       @id @default(autoincrement())
+  employeeId  Int       @map("employee_id")
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType   LeaveType @map("leave_type")
+  year        Int
+  entitled    Decimal   @db.Decimal(5, 1)
+  carriedOver Decimal   @default(0) @map("carried_over") @db.Decimal(5, 1)
+  used        Decimal   @default(0) @db.Decimal(5, 1)
+
+  @@unique([employeeId, leaveType, year])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id           Int         @id @default(autoincrement())
+  employeeId   Int         @map("employee_id")
+  employee     Employee    @relation("Requester", fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType   @map("leave_type")
+  startDate    DateTime    @map("start_date") @db.Date
+  endDate      DateTime    @map("end_date") @db.Date
+  /// Working days covered (weekends and the location's holidays excluded).
+  days         Decimal     @db.Decimal(4, 1)
+  reason       String?
+  status       LeaveStatus @default(PENDING)
+  approverId   Int?        @map("approver_id")
+  approver     Employee?   @relation("Approver", fields: [approverId], references: [id])
+  decidedAt    DateTime?   @map("decided_at")
+  decisionNote String?     @map("decision_note")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@index([employeeId, startDate])
+  @@index([approverId, status])
+  @@index([status, startDate])
+  @@map("leave_requests")
+}
+
+model Holiday {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @db.Date
+  name       String
+  locationId Int      @map("location_id")
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, date])
+  @@map("holidays")
+}
+
+// --- Pay -------------------------------------------------------------------
+
+/// One payslip per employee per month, in the employee's location currency.
+model Payslip {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int      @map("employee_id")
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd   DateTime @map("period_end") @db.Date
+  payDate     DateTime @map("pay_date") @db.Date
+  currency    String   @db.Char(3)
+  basePay     Decimal  @map("base_pay") @db.Decimal(12, 2)
+  allowances  Decimal  @db.Decimal(12, 2)
+  bonus       Decimal  @default(0) @db.Decimal(12, 2)
+  grossPay    Decimal  @map("gross_pay") @db.Decimal(12, 2)
+  tax         Decimal  @db.Decimal(12, 2)
+  deductions  Decimal  @db.Decimal(12, 2) // pension, insurance, other
+  netPay      Decimal  @map("net_pay") @db.Decimal(12, 2)
+
+  @@unique([employeeId, periodStart])
+  @@map("payslips")
+}
+
+// --- Benefits --------------------------------------------------------------
+
+model BenefitPlan {
+  id                 Int                 @id @default(autoincrement())
+  code               String              @unique
+  name               String
+  category           BenefitCategory
+  provider           String
+  description        String
+  /// Monthly employee contribution, by coverage level, in the plan's currency.
+  costEmployeeOnly   Decimal             @map("cost_employee_only") @db.Decimal(10, 2)
+  costEmployeeSpouse Decimal             @map("cost_employee_spouse") @db.Decimal(10, 2)
+  costFamily         Decimal             @map("cost_family") @db.Decimal(10, 2)
+  currency           String              @db.Char(3)
+  /// Countries the plan is offered in (ISO alpha-2).
+  countries          String[]
+  enrollments        BenefitEnrollment[]
+
+  @@map("benefit_plans")
+}
+
+model BenefitEnrollment {
+  id            Int           @id @default(autoincrement())
+  employeeId    Int           @map("employee_id")
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  planId        Int           @map("plan_id")
+  plan          BenefitPlan   @relation(fields: [planId], references: [id])
+  coverageLevel CoverageLevel @map("coverage_level")
+  dependents    Int           @default(0)
+  startDate     DateTime      @map("start_date") @db.Date
+  endDate       DateTime?     @map("end_date") @db.Date
+
+  @@unique([employeeId, planId])
+  @@map("benefit_enrollments")
+}

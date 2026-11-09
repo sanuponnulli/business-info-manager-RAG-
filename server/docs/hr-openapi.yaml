@@ -1,0 +1,1047 @@
+openapi: 3.1.0
+info:
+  title: Acme HR API
+  version: 1.0.0
+  summary: People, leave, pay and benefits for Acme employees.
+  description: |
+    The HR system of record. Employees use it (through the app or the
+    handbook assistant) to look up colleagues, manage leave, read payslips
+    and check benefits; managers approve their team's leave.
+
+    ## Conventions
+    - **Auth:** every endpoint except `POST /v1/auth/login`
+      needs `Authorization: Bearer <accessToken>`. What a caller can see
+      follows from *who they are*: `/me/...` endpoints always mean the
+      caller, never an id passed in.
+    - **Roles:** `EMPLOYEE`, `MANAGER` (has direct reports), `HR_ADMIN`
+      (sees and decides everything).
+    - **Envelope:** successful bodies are `{ "data": ... }`; lists that page
+      add `"meta": { "page", "pageSize", "total" }`.
+    - **Errors:** `{ "error": { "code", "message", "details"? } }` with the
+      matching HTTP status.
+    - **Dates** are `YYYY-MM-DD` (calendar dates, no time zone);
+      **timestamps** are ISO 8601 in UTC.
+    - **Money** is a decimal *string* (`"178958.34"`) plus a `currency`
+      code, so no precision is lost to floating point.
+    - **Leave days** are working days: weekends and the employee's office
+      holidays are not counted.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: http://localhost:3000/api
+    description: Local development (the handbook server)
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Sign in and get an access token.
+  - name: Me
+    description: The signed-in employee.
+  - name: Directory
+    description: Colleagues, departments and offices.
+  - name: Holidays
+    description: Public holidays per office.
+  - name: Leave
+    description: Balances and requests for the signed-in employee.
+  - name: Approvals
+    description: Leave decisions and team views for managers and HR.
+  - name: Pay
+    description: The signed-in employee's payslips and pay totals.
+  - name: Benefits
+    description: Benefit plans and the signed-in employee's enrollments.
+
+paths:
+  # --- Auth ---------------------------------------------------------------
+
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Exchange email and password for an access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, examples: [employee@acme.test] }
+                password: { type: string, minLength: 1, examples: ["Password123!"] }
+      responses:
+        "200":
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [accessToken, tokenType, expiresIn, employee]
+                    properties:
+                      accessToken: { type: string, description: "JWT; send as `Authorization: Bearer <accessToken>`." }
+                      tokenType: { type: string, enum: [Bearer] }
+                      expiresIn: { type: integer, description: Seconds until the token expires., examples: [3600] }
+                      employee: { $ref: "#/components/schemas/EmployeeSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: Wrong email or password, or the account is terminated. (Deliberately doesn't say which.)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # --- Me -----------------------------------------------------------------
+
+  /v1/me:
+    get:
+      tags: [Me]
+      operationId: getMe
+      summary: The signed-in employee's profile
+      responses:
+        "200":
+          description: Profile, with department, office and manager.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/MyProfile" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # --- Directory ----------------------------------------------------------
+
+  /v1/employees:
+    get:
+      tags: [Directory]
+      operationId: listEmployees
+      summary: Search the company directory
+      description: Active and on-leave employees. HR admins also see terminated employees when `includeTerminated=true`.
+      parameters:
+        - name: q
+          in: query
+          description: Matches first name, last name, email or job title (case-insensitive, partial).
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - name: locationId
+          in: query
+          schema: { type: integer }
+        - name: includeTerminated
+          in: query
+          description: HR admins only; ignored for everyone else.
+          schema: { type: boolean, default: false }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: One page of employees, sorted by last name then first name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/EmployeeSummary" }
+                  meta: { $ref: "#/components/schemas/PageMeta" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/employees/{employeeId}:
+    get:
+      tags: [Directory]
+      operationId: getEmployee
+      summary: A colleague's directory profile
+      description: |
+        Everyone sees the directory fields. `hireDate`, `employmentType`,
+        `status` and `terminationDate` are only included for HR admins and
+        for the employee's own manager.
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: The profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/EmployeeProfile" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/employees/{employeeId}/direct-reports:
+    get:
+      tags: [Directory]
+      operationId: listDirectReports
+      summary: People who report to an employee
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: Direct reports (not terminated), sorted by name. Empty if the employee manages no one.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/EmployeeSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/departments:
+    get:
+      tags: [Directory]
+      operationId: listDepartments
+      summary: All departments with their head and headcount
+      responses:
+        "200":
+          description: Departments, sorted by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Department" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/departments/{departmentId}:
+    get:
+      tags: [Directory]
+      operationId: getDepartment
+      summary: One department, with headcount per office
+      parameters:
+        - name: departmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: The department.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/Department"
+                      - type: object
+                        required: [headcountByLocation]
+                        properties:
+                          headcountByLocation:
+                            type: array
+                            items:
+                              type: object
+                              required: [location, headcount]
+                              properties:
+                                location: { $ref: "#/components/schemas/LocationRef" }
+                                headcount: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/locations:
+    get:
+      tags: [Directory]
+      operationId: listLocations
+      summary: All offices
+      responses:
+        "200":
+          description: Offices, sorted by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Location" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # --- Holidays -----------------------------------------------------------
+
+  /v1/holidays:
+    get:
+      tags: [Holidays]
+      operationId: listHolidays
+      summary: Public holidays for an office
+      description: Defaults to the caller's own office and the current year.
+      parameters:
+        - name: locationId
+          in: query
+          description: Defaults to the caller's office.
+          schema: { type: integer }
+        - name: year
+          in: query
+          description: Defaults to the current year. Ignored when `from`/`to` are given.
+          schema: { type: integer, minimum: 2000, maximum: 2100 }
+        - name: from
+          in: query
+          description: Only holidays on or after this date.
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          description: Only holidays on or before this date.
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Holidays in date order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Holiday" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # --- Leave (self) -------------------------------------------------------
+
+  /v1/me/leave-balances:
+    get:
+      tags: [Leave]
+      operationId: listMyLeaveBalances
+      summary: The caller's leave balances
+      description: |
+        One entry per leave type that has an allowance (`ANNUAL`, `SICK`,
+        `PERSONAL`). `PARENTAL` and `UNPAID` leave have no running balance.
+      parameters:
+        - name: year
+          in: query
+          description: Defaults to the current year.
+          schema: { type: integer, minimum: 2000, maximum: 2100 }
+        - name: leaveType
+          in: query
+          schema: { $ref: "#/components/schemas/LeaveType" }
+      responses:
+        "200":
+          description: Balances for the year.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/LeaveBalance" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/me/leave-requests:
+    get:
+      tags: [Leave]
+      operationId: listMyLeaveRequests
+      summary: The caller's leave requests
+      parameters:
+        - $ref: "#/components/parameters/LeaveStatusFilter"
+        - name: leaveType
+          in: query
+          schema: { $ref: "#/components/schemas/LeaveType" }
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: One page of requests, newest start date first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/LeaveRequest" }
+                  meta: { $ref: "#/components/schemas/PageMeta" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Leave]
+      operationId: createLeaveRequest
+      summary: Request leave
+      description: |
+        Creates a `PENDING` request for the caller's manager to decide.
+        `days` is calculated by the server (working days only).
+        `SICK` leave may be recorded for past dates; other types must start
+        today or later.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [leaveType, startDate, endDate]
+              properties:
+                leaveType: { $ref: "#/components/schemas/LeaveType" }
+                startDate: { type: string, format: date, examples: ["2026-12-14"] }
+                endDate: { type: string, format: date, examples: ["2026-12-16"] }
+                reason: { type: string, maxLength: 500 }
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Location:
+              description: URL of the new request.
+              schema: { type: string, examples: [/api/v1/leave-requests/1501] }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/LeaveRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: Overlaps one of the caller's pending or approved requests (`code` = `leave_overlap`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: |
+            Valid JSON but not allowed: `code` is `insufficient_balance`
+            (more days than `available`), `no_working_days` (only weekends or
+            holidays), or `date_in_past`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/leave-requests/{requestId}:
+    get:
+      tags: [Leave]
+      operationId: getLeaveRequest
+      summary: One leave request
+      description: Visible to the requester, their approver, and HR admins; anyone else gets 404.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: The request.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/LeaveRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/leave-requests/{requestId}/cancel:
+    post:
+      tags: [Leave]
+      operationId: cancelLeaveRequest
+      summary: Cancel your own request
+      description: Allowed for `PENDING` requests, and for `APPROVED` ones that haven't started yet. Approved days are returned to the balance.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: The request, now `CANCELLED`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/LeaveRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Can't be cancelled in its current state (`code` = `invalid_state`), e.g. already started, rejected or cancelled.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # --- Approvals (managers and HR) ---------------------------------------
+
+  /v1/leave-requests/{requestId}/decision:
+    post:
+      tags: [Approvals]
+      operationId: decideLeaveRequest
+      summary: Approve or reject a pending request
+      description: Only the requester's manager or an HR admin. Nobody can decide their own request.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [APPROVE, REJECT] }
+                note:
+                  type: string
+                  maxLength: 500
+                  description: Shown to the employee. Recommended when rejecting.
+      responses:
+        "200":
+          description: The request, now `APPROVED` or `REJECTED`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/LeaveRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Not `PENDING` any more (`code` = `invalid_state`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Approving would exceed the employee's balance (`code` = `insufficient_balance`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/team/leave-requests:
+    get:
+      tags: [Approvals]
+      operationId: listTeamLeaveRequests
+      summary: Leave requests from the caller's direct reports
+      description: For managers (their direct reports) and HR admins (everyone). Other callers get 403.
+      parameters:
+        - $ref: "#/components/parameters/LeaveStatusFilter"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: One page of requests, soonest start date first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/LeaveRequest" }
+                  meta: { $ref: "#/components/schemas/PageMeta" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/team/absences:
+    get:
+      tags: [Approvals]
+      operationId: listTeamAbsences
+      summary: Who in the caller's team is off between two dates
+      description: |
+        Approved leave of the caller's direct reports overlapping the range.
+        Defaults to the current week (Monday–Sunday). The range may be at
+        most 92 days. Leave *reasons* are not included.
+      parameters:
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+      responses:
+        "200":
+          description: Absences in start-date order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [employee, leaveType, startDate, endDate, days]
+                      properties:
+                        employee: { $ref: "#/components/schemas/EmployeeRef" }
+                        leaveType: { $ref: "#/components/schemas/LeaveType" }
+                        startDate: { type: string, format: date }
+                        endDate: { type: string, format: date }
+                        days: { type: number }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  # --- Pay ----------------------------------------------------------------
+
+  /v1/me/payslips:
+    get:
+      tags: [Pay]
+      operationId: listMyPayslips
+      summary: The caller's payslips
+      parameters:
+        - name: year
+          in: query
+          description: Defaults to the current year.
+          schema: { type: integer, minimum: 2000, maximum: 2100 }
+      responses:
+        "200":
+          description: Payslips for the year, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/PayslipSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/me/payslips/{payslipId}:
+    get:
+      tags: [Pay]
+      operationId: getMyPayslip
+      summary: One payslip with the full breakdown
+      parameters:
+        - name: payslipId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: The payslip.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/Payslip" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: No such payslip, or it belongs to someone else.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/me/pay-summary:
+    get:
+      tags: [Pay]
+      operationId: getMyPaySummary
+      summary: Year-to-date pay totals
+      parameters:
+        - name: year
+          in: query
+          description: Defaults to the current year.
+          schema: { type: integer, minimum: 2000, maximum: 2100 }
+      responses:
+        "200":
+          description: Totals over the year's payslips so far.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [year, currency, payslipCount, basePay, allowances, bonus, grossPay, tax, deductions, netPay]
+                    properties:
+                      year: { type: integer }
+                      currency: { $ref: "#/components/schemas/Currency" }
+                      payslipCount: { type: integer }
+                      lastPayDate: { type: [string, "null"], format: date }
+                      basePay: { $ref: "#/components/schemas/Money" }
+                      allowances: { $ref: "#/components/schemas/Money" }
+                      bonus: { $ref: "#/components/schemas/Money" }
+                      grossPay: { $ref: "#/components/schemas/Money" }
+                      tax: { $ref: "#/components/schemas/Money" }
+                      deductions: { $ref: "#/components/schemas/Money" }
+                      netPay: { $ref: "#/components/schemas/Money" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # --- Benefits -----------------------------------------------------------
+
+  /v1/benefit-plans:
+    get:
+      tags: [Benefits]
+      operationId: listBenefitPlans
+      summary: Benefit plans offered in the caller's country
+      parameters:
+        - name: category
+          in: query
+          schema: { $ref: "#/components/schemas/BenefitCategory" }
+      responses:
+        "200":
+          description: Plans, by category then name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/BenefitPlan" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/me/benefits:
+    get:
+      tags: [Benefits]
+      operationId: listMyBenefits
+      summary: The caller's benefit enrollments
+      description: Current enrollments (no end date, or ending in the future), with what each costs the caller per month.
+      responses:
+        "200":
+          description: Enrollments, by category.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/BenefitEnrollment" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    EmployeeId:
+      name: employeeId
+      in: path
+      required: true
+      schema: { type: integer }
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: integer }
+    LeaveStatusFilter:
+      name: status
+      in: query
+      schema: { $ref: "#/components/schemas/LeaveStatus" }
+    From:
+      name: from
+      in: query
+      description: Only items ending on or after this date.
+      schema: { type: string, format: date }
+    To:
+      name: to
+      in: query
+      description: Only items starting on or before this date.
+      schema: { type: string, format: date }
+
+  responses:
+    BadRequest:
+      description: A parameter or body field is missing or malformed (`code` = `invalid_request`; `details` lists each problem).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing, invalid or expired token (`code` = `unauthorized`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Signed in, but this role may not do this (`code` = `forbidden`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: No such resource, or the caller may not see it (`code` = `not_found`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    # --- Shared ---
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, examples: [invalid_request] }
+            message: { type: string, examples: ["startDate: must be on or before endDate"] }
+            details:
+              type: array
+              items:
+                type: object
+                required: [path, message]
+                properties:
+                  path: { type: string }
+                  message: { type: string }
+    PageMeta:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer, description: Matching items across all pages. }
+    Money:
+      type: string
+      pattern: '^-?\d+\.\d{2}$'
+      description: Decimal amount with two places, in the accompanying `currency`.
+      examples: ["178958.34"]
+    Currency:
+      type: string
+      description: ISO 4217 code.
+      examples: [AED, INR, GBP]
+
+    # --- Enums ---
+    Role:
+      type: string
+      enum: [EMPLOYEE, MANAGER, HR_ADMIN]
+    EmploymentType:
+      type: string
+      enum: [FULL_TIME, PART_TIME, CONTRACT]
+    EmployeeStatus:
+      type: string
+      enum: [ACTIVE, ON_LEAVE, TERMINATED]
+    LeaveType:
+      type: string
+      enum: [ANNUAL, SICK, PERSONAL, PARENTAL, UNPAID]
+    LeaveStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+    BenefitCategory:
+      type: string
+      enum: [HEALTH, DENTAL, VISION, LIFE, RETIREMENT]
+    CoverageLevel:
+      type: string
+      enum: [EMPLOYEE_ONLY, EMPLOYEE_SPOUSE, FAMILY]
+
+    # --- Organisation ---
+    LocationRef:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { type: integer }
+        code: { type: string, examples: [COK] }
+        name: { type: string, examples: [Kochi Office] }
+    Location:
+      allOf:
+        - $ref: "#/components/schemas/LocationRef"
+        - type: object
+          required: [city, country, timezone, currency]
+          properties:
+            city: { type: string }
+            country: { type: string, description: ISO 3166-1 alpha-2., examples: [IN] }
+            timezone: { type: string, description: IANA time zone., examples: [Asia/Kolkata] }
+            currency: { $ref: "#/components/schemas/Currency" }
+    DepartmentRef:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { type: integer }
+        code: { type: string, examples: [ENG] }
+        name: { type: string, examples: [Engineering] }
+    Department:
+      allOf:
+        - $ref: "#/components/schemas/DepartmentRef"
+        - type: object
+          required: [head, headcount]
+          properties:
+            head:
+              oneOf:
+                - $ref: "#/components/schemas/EmployeeRef"
+                - type: "null"
+            headcount: { type: integer, description: Active and on-leave employees. }
+
+    # --- People ---
+    EmployeeRef:
+      type: object
+      description: Just enough to name someone.
+      required: [id, name, jobTitle]
+      properties:
+        id: { type: integer }
+        name: { type: string, examples: [Arjun Menon] }
+        jobTitle: { type: string, examples: [Engineering Manager] }
+    EmployeeSummary:
+      type: object
+      required: [id, employeeCode, firstName, lastName, email, jobTitle, department, location]
+      properties:
+        id: { type: integer }
+        employeeCode: { type: string, examples: [E0012] }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        jobTitle: { type: string }
+        department: { $ref: "#/components/schemas/DepartmentRef" }
+        location: { $ref: "#/components/schemas/LocationRef" }
+    EmployeeProfile:
+      allOf:
+        - $ref: "#/components/schemas/EmployeeSummary"
+        - type: object
+          required: [phone, manager]
+          properties:
+            phone: { type: [string, "null"] }
+            manager:
+              oneOf:
+                - $ref: "#/components/schemas/EmployeeRef"
+                - type: "null"
+            hireDate: { type: string, format: date, description: HR admins and the employee's manager only. }
+            employmentType: { $ref: "#/components/schemas/EmploymentType" }
+            status: { $ref: "#/components/schemas/EmployeeStatus" }
+            terminationDate: { type: [string, "null"], format: date }
+    MyProfile:
+      allOf:
+        - $ref: "#/components/schemas/EmployeeSummary"
+        - type: object
+          required: [phone, role, employmentType, status, hireDate, manager, directReportCount]
+          properties:
+            phone: { type: [string, "null"] }
+            role: { $ref: "#/components/schemas/Role" }
+            employmentType: { $ref: "#/components/schemas/EmploymentType" }
+            status: { $ref: "#/components/schemas/EmployeeStatus" }
+            hireDate: { type: string, format: date }
+            manager:
+              oneOf:
+                - $ref: "#/components/schemas/EmployeeRef"
+                - type: "null"
+            directReportCount: { type: integer }
+
+    # --- Holidays ---
+    Holiday:
+      type: object
+      required: [date, name, location]
+      properties:
+        date: { type: string, format: date, examples: ["2026-12-25"] }
+        name: { type: string, examples: [Christmas] }
+        location: { $ref: "#/components/schemas/LocationRef" }
+
+    # --- Leave ---
+    LeaveBalance:
+      type: object
+      required: [leaveType, year, entitled, carriedOver, used, pending, remaining, available]
+      properties:
+        leaveType: { $ref: "#/components/schemas/LeaveType" }
+        year: { type: integer }
+        entitled: { type: number, description: This year's allowance (pro-rata if hired during the year)., examples: [24] }
+        carriedOver: { type: number, description: Unused annual days brought from last year (max 5)., examples: [5] }
+        used: { type: number, description: "Approved days, taken or booked.", examples: [18] }
+        pending: { type: number, description: Days in requests still awaiting a decision., examples: [3] }
+        remaining: { type: number, description: "entitled + carriedOver - used", examples: [11] }
+        available: { type: number, description: "remaining - pending: what a new request may use", examples: [8] }
+    LeaveRequest:
+      type: object
+      required: [id, employee, leaveType, startDate, endDate, days, reason, status, approver, decidedAt, decisionNote, createdAt]
+      properties:
+        id: { type: integer }
+        employee: { $ref: "#/components/schemas/EmployeeRef" }
+        leaveType: { $ref: "#/components/schemas/LeaveType" }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        days: { type: number, description: Working days covered. }
+        reason: { type: [string, "null"] }
+        status: { $ref: "#/components/schemas/LeaveStatus" }
+        approver:
+          description: Who decides (or decided) it.
+          oneOf:
+            - $ref: "#/components/schemas/EmployeeRef"
+            - type: "null"
+        decidedAt: { type: [string, "null"], format: date-time }
+        decisionNote: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+
+    # --- Pay ---
+    PayslipSummary:
+      type: object
+      required: [id, periodStart, periodEnd, payDate, currency, grossPay, netPay]
+      properties:
+        id: { type: integer }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        payDate: { type: string, format: date }
+        currency: { $ref: "#/components/schemas/Currency" }
+        grossPay: { $ref: "#/components/schemas/Money" }
+        netPay: { $ref: "#/components/schemas/Money" }
+    Payslip:
+      allOf:
+        - $ref: "#/components/schemas/PayslipSummary"
+        - type: object
+          required: [basePay, allowances, bonus, tax, deductions]
+          properties:
+            basePay: { $ref: "#/components/schemas/Money" }
+            allowances: { $ref: "#/components/schemas/Money" }
+            bonus: { $ref: "#/components/schemas/Money" }
+            tax: { $ref: "#/components/schemas/Money" }
+            deductions: { $ref: "#/components/schemas/Money" }
+
+    # --- Benefits ---
+    BenefitPlan:
+      type: object
+      required: [id, code, name, category, provider, description, currency, monthlyCost]
+      properties:
+        id: { type: integer }
+        code: { type: string, examples: [HLT-IN] }
+        name: { type: string }
+        category: { $ref: "#/components/schemas/BenefitCategory" }
+        provider: { type: string }
+        description: { type: string }
+        currency: { $ref: "#/components/schemas/Currency" }
+        monthlyCost:
+          type: object
+          description: What the employee pays per month, by coverage level.
+          required: [EMPLOYEE_ONLY, EMPLOYEE_SPOUSE, FAMILY]
+          properties:
+            EMPLOYEE_ONLY: { $ref: "#/components/schemas/Money" }
+            EMPLOYEE_SPOUSE: { $ref: "#/components/schemas/Money" }
+            FAMILY: { $ref: "#/components/schemas/Money" }
+    BenefitEnrollment:
+      type: object
+      required: [id, plan, coverageLevel, dependents, startDate, endDate, monthlyCost, currency]
+      properties:
+        id: { type: integer }
+        plan:
+          type: object
+          required: [id, code, name, category, provider]
+          properties:
+            id: { type: integer }
+            code: { type: string }
+            name: { type: string }
+            category: { $ref: "#/components/schemas/BenefitCategory" }
+            provider: { type: string }
+        coverageLevel: { $ref: "#/components/schemas/CoverageLevel" }
+        dependents: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: [string, "null"], format: date }
+        monthlyCost: { $ref: "#/components/schemas/Money" }
+        currency: { $ref: "#/components/schemas/Currency" }

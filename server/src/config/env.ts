@@ -17,6 +17,14 @@ const EnvSchema = z.object({
   CHROMA_URL: z.string().url().default("http://localhost:8000"),
   CHROMA_COLLECTION: z.string().min(1).default("handbook-collection"),
 
+  // The HR database (people, leave, pay, benefits). See prisma/schema.prisma.
+  DATABASE_URL: z.string().url().default("postgresql://hr:hr@localhost:5433/hr"),
+
+  // Signs the employees' login tokens (JWT, HS256). Anyone with this secret
+  // can sign in as anyone, so keep it long, random and out of git.
+  JWT_SECRET: z.string({ error: "is required" }).min(32, "must be at least 32 characters"),
+  JWT_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
+
   // Browser origins allowed to call the API (the React admin app), comma-separated.
   CORS_ORIGINS: z
     .string()

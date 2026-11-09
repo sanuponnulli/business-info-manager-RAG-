@@ -35,6 +35,25 @@ npm run dev               # http://localhost:3000, restarts on file changes
 
 Every setting is listed and explained in [`.env.example`](.env.example). The server checks them at startup and refuses to start if one is missing or invalid.
 
+### HR database
+
+The server also holds the HR data of the fictional company **Acme** (people, leave, pay, benefits) in Postgres, through Prisma. The HR endpoints will be served by this same server under `/api/v1/...`; their contract is [`docs/hr-openapi.yaml`](docs/hr-openapi.yaml) (22 endpoints, not implemented yet).
+
+```bash
+docker compose up -d hr-db     # from the repo root: Postgres on localhost:5433
+npx prisma migrate deploy      # create the tables (npm install already generated the client)
+npm run db:seed                # ~130 employees with leave, payslips and benefits (safe to re-run)
+```
+
+| Script | What it does |
+|---|---|
+| `npm run db:seed` | Wipes and refills the HR tables. The same data every run |
+| `npm run db:studio` | Browse the data in the browser |
+| `npm run db:migrate` | After editing `prisma/schema.prisma`: create and apply a migration, then run `npm run db:generate` |
+| `npm run contract:lint` | Checks the OpenAPI contract |
+
+Demo logins, all with password `Password123!`: `employee@acme.test` (Sneha Nair, has a pending leave request), `manager@acme.test` (Arjun Menon, 8 reports, pending approvals), `hr@acme.test` (Fatima Al Mansoori, HR admin).
+
 ### Try it without a frontend
 
 ```bash

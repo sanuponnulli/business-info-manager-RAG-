@@ -1,0 +1,5 @@
+extends:
+  - recommended
+rules:
+  # The only server in this contract is the local dev one, on purpose.
+  no-server-example.com: off

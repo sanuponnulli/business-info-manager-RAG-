@@ -11,5 +11,24 @@ services:
     environment:
       - ANONYMIZED_TELEMETRY=FALSE
 
+  hr-db:
+    # The HR database (server/prisma/). Host port 5433, because a locally
+    # installed Postgres often already uses 5432.
+    image: postgres:17.6-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=hr
+      - POSTGRES_PASSWORD=hr
+      - POSTGRES_DB=hr
+    volumes:
+      - hr-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr -d hr"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   chroma-data:
+  hr-db-data:

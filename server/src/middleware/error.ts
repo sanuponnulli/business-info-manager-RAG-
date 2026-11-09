@@ -14,9 +14,9 @@ export const notFound: RequestHandler = (req, _res, next) => {
  * build error responses themselves and every error has the same shape.
  */
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-  const { status, code, message } = toHttpError(err);
+  const { status, code, message, details } = toHttpError(err);
   if (status >= 500) logger.error({ err }, "Unhandled error");
-  res.status(status).json({ error: { code, message } });
+  res.status(status).json({ error: { code, message, ...(details && { details }) } });
 };
 
 function toHttpError(err: unknown): HttpError {

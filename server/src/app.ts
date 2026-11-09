@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { isChromaUp } from "./clients/chroma.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import { chatRouter } from "./routes/chat.routes.js";
+import { hrRouter } from "./routes/hr.routes.js";
 import { errorHandler, notFound } from "./middleware/error.js";
 import { requestLog } from "./middleware/requestLog.js";
 
@@ -26,7 +27,7 @@ export function createApp() {
   app.use(
     cors({
       origin: env.CORS_ORIGINS,
-      allowedHeaders: ["Content-Type", "x-admin-key"],
+      allowedHeaders: ["Content-Type", "x-admin-key", "Authorization"],
       exposedHeaders: ["Location"], // so the admin app can read the job URL after an upload
     }),
   );
@@ -46,6 +47,7 @@ export function createApp() {
 
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1/chat", chatRouter);
+  app.use("/api/v1", hrRouter); // HR API: /auth/login, /me, ...
 
   // These two must come last: they handle whatever the routes above didn't.
   app.use(notFound);
