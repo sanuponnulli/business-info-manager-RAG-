@@ -66,9 +66,11 @@ export async function retrieveContext(query: string, k = DEFAULT_TOP_K): Promise
  *   Employees are entitled to ten days of fully paid sick leave...
  *
  * The [n] numbers let the model cite its sources and let the app map a
- * citation back to the chunk (and page) it came from.
+ * citation back to the chunk (and page) it came from. `start` lets a second
+ * search in the same answer continue the numbering ([4], [5], ...) instead
+ * of reusing [1].
  */
-export function formatContext(chunks: RetrievedChunk[]): string {
+export function formatContext(chunks: RetrievedChunk[], start = 1): string {
   if (chunks.length === 0) return "No relevant handbook content was found.";
-  return chunks.map((c, i) => `[${i + 1}] (${c.title}, p. ${c.page})\n${c.text}`).join("\n\n");
+  return chunks.map((c, i) => `[${start + i}] (${c.title}, p. ${c.page})\n${c.text}`).join("\n\n");
 }
