@@ -2,9 +2,11 @@
 
 The employee app for the [handbook RAG server](../server/README.md). Sign in, then ask questions by **text** or **voice**. Answers come from the company handbook (with page citations) and from your own HR records. What you can see depends on your role, and the server enforces it.
 
-| Sign in | Ask | Check the source | Manager view | Voice |
+| Sign in | Home | Answer with sources | The cited passage | Voice |
 |---|---|---|---|---|
-| ![Login](docs/screenshots/login.png) | ![Answer](docs/screenshots/answer.png) | ![Source](docs/screenshots/source.png) | ![Manager](docs/screenshots/manager.png) | ![Voice](docs/screenshots/voice.png) |
+| ![Sign-in screen with demo accounts](docs/screenshots/login.png) | ![Home screen with suggested questions](docs/screenshots/welcome.png) | ![An answer with its handbook sources](docs/screenshots/answer.png) | ![The handbook passage behind a citation](docs/screenshots/source.png) | ![A voice question with captions](docs/screenshots/voice.png) |
+
+Screenshots come from the design preview (see **Tests**). The answers in it are copies of real ones from the server.
 
 ## Features
 
