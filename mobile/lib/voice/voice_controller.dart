@@ -73,8 +73,10 @@ class VoiceController extends Notifier<VoiceState> {
   bool _newUserCaption = true;
   bool _newModelCaption = true;
 
-  /// The agent finished talking; once playback drains we're ready again.
+  /// The agent finished its turn (server) and the speaker ran dry (device).
+  /// They can come in either order; ready again once both have happened.
   bool _turnDone = false;
+  bool _playing = false;
   bool _disposed = false;
 
   @override
@@ -142,6 +144,7 @@ class VoiceController extends Notifier<VoiceState> {
     if (_pending.length > 0) _socket?.send(audioFrame(_pending.takeBytes()));
     _socket?.send(endFrame);
     _turnDone = false;
+    _playing = false;
     state = state.copyWith(phase: VoicePhase.thinking);
     // Recording can change the audio session; get playback ready again.
     await _speaker?.stop();
@@ -165,6 +168,7 @@ class VoiceController extends Notifier<VoiceState> {
         state = state.copyWith(phase: VoicePhase.ready);
       case AudioOut(:final pcm):
         if (state.phase == VoicePhase.listening) return; // the user is talking over it
+        _playing = true;
         _speaker?.play(pcm);
         state = state.copyWith(phase: VoicePhase.speaking, activity: () => null);
       case Transcript(:final fromUser, :final text):
@@ -174,13 +178,16 @@ class VoiceController extends Notifier<VoiceState> {
           activity: () => name == 'search_handbook' ? 'Searching the handbook…' : 'Checking your HR records…',
         );
       case Interrupted():
+        _playing = false;
         _speaker?.stop();
       case TurnComplete():
         _turnDone = true;
         _newUserCaption = true;
         _newModelCaption = true;
-        // No audio came (or it already finished): ready for the next question.
-        if (state.phase == VoicePhase.thinking) state = state.copyWith(phase: VoicePhase.ready, activity: () => null);
+        // No audio came, or it already finished playing: ready for the next question.
+        if (state.phase == VoicePhase.thinking || (state.phase == VoicePhase.speaking && !_playing)) {
+          state = state.copyWith(phase: VoicePhase.ready, activity: () => null);
+        }
       case ServerError(:final message) when event.endsCall:
         state = state.copyWith(phase: VoicePhase.ended, error: () => message, activity: () => null);
       case ServerError() || null:
@@ -189,7 +196,9 @@ class VoiceController extends Notifier<VoiceState> {
   }
 
   void _onPlaybackDrained() {
-    if (_disposed || !_turnDone) return;
+    if (_disposed) return;
+    _playing = false;
+    if (!_turnDone) return; // more audio may still come
     if (state.phase == VoicePhase.speaking) state = state.copyWith(phase: VoicePhase.ready);
   }
 

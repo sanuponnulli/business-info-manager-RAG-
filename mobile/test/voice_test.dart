@@ -166,6 +166,26 @@ void main() {
     expect(call.state.phase, VoicePhase.ready);
   });
 
+  test('is ready again when playback ends before the turn is complete', () async {
+    final call = Call();
+    addTearDown(call.container.dispose);
+    await call.start();
+    final s = call.socket;
+    s.server({'type': 'ready'});
+    await settle();
+    await call.voice.toggleMic();
+    await call.voice.toggleMic();
+
+    s.server({'type': 'audio', 'data': base64Encode(Uint8List(4800))});
+    await settle();
+    call.speaker.drained!(); // the speaker runs dry first...
+    expect(call.state.phase, VoicePhase.speaking);
+
+    s.server({'type': 'turn_complete'}); // ...then the server says the turn is over
+    await settle();
+    expect(call.state.phase, VoicePhase.ready);
+  });
+
   test('tapping the mic while the agent speaks cuts it off', () async {
     final call = Call();
     addTearDown(call.container.dispose);
