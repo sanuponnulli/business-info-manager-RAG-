@@ -23,8 +23,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in'), findsNothing);
-    expect(find.text('Flutter Developer · Engineering'), findsOneWidget);
-    expect(find.widgetWithText(Chip, 'Employee'), findsOneWidget);
+    expect(find.text('Hi Sneha'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Account'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Flutter Developer · Engineering'), findsOneWidget);
+    expect(find.textContaining('Employee'), findsWidgets);
   });
 
   testWidgets('a wrong password shows the server message', (tester) async {
@@ -48,9 +52,11 @@ void main() {
 
   testWidgets('sign out returns to the login screen', (tester) async {
     await pumpApp(tester, tokens: MemoryTokenStore(goodToken));
-    expect(find.text('Sneha Nair'), findsOneWidget);
+    expect(find.text('Hi Sneha'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Sign out'));
+    await tester.tap(find.byTooltip('Account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
     expect(find.text('Sign in'), findsOneWidget);
   });

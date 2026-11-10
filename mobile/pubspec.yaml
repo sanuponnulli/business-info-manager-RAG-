@@ -37,6 +37,10 @@ dependencies:
   flutter_riverpod: ^3.5.0
   http: ^1.6.0
   flutter_secure_storage: ^11.2.0
+  flutter_markdown_plus: ^1.0.12
+  record: ^7.1.2
+  flutter_pcm_sound: ^3.3.3
+  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   flutter_test:
@@ -48,6 +52,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -90,3 +97,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App icon (drawn by tool/draw_icon.swift). Regenerate: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/icon.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#3557D4"
+  adaptive_icon_foreground: assets/icon/icon-foreground.png

@@ -3,20 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth/auth_controller.dart';
 import 'auth/login_screen.dart';
-import 'home/home_screen.dart';
+import 'chat/chat_screen.dart';
+import 'ui/theme.dart';
 
 class AcmeAssistantApp extends StatelessWidget {
   const AcmeAssistantApp({super.key});
-
-  static const _seed = Color(0xFF3557D4);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Acme Assistant',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: _seed, brightness: Brightness.light),
-      darkTheme: ThemeData(colorSchemeSeed: _seed, brightness: Brightness.dark),
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
       home: const _AuthGate(),
     );
   }
@@ -30,9 +29,9 @@ class _AuthGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return switch (ref.watch(authProvider)) {
-      AsyncData(value: final profile?) => HomeScreen(profile: profile),
+      AsyncData(value: final profile?) => ChatScreen(profile: profile),
       AsyncData() || AsyncError() => const LoginScreen(),
-      _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      _ => const Scaffold(body: Center(child: BrandMark(size: 64))),
     };
   }
 }

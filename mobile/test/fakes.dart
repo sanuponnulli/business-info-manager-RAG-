@@ -25,8 +25,11 @@ http.Response json(int status, Object body) =>
     http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
 
 /// A pretend backend: the right password gets [goodToken]; /me answers only for it.
-MockClient fakeBackend({String role = 'EMPLOYEE', List<http.Request>? log}) => MockClient((req) async {
+/// [onAsk] answers POST /api/v1/chat/ask (signed-in requests only).
+MockClient fakeBackend({String role = 'EMPLOYEE', List<http.Request>? log, Future<http.Response> Function(http.Request)? onAsk}) =>
+    MockClient((req) async {
       log?.add(req);
+      if (req.url.path == '/api/v1/chat/ask' && onAsk != null) return onAsk(req);
       if (req.url.path == '/api/v1/auth/login') {
         final body = jsonDecode(req.body) as Map<String, dynamic>;
         return body['password'] == 'Password123!'
@@ -53,3 +56,10 @@ List<Override> overridesFor(http.Client backend, TokenStore tokens) => [
       apiClientProvider.overrideWithValue(ApiClient(baseUrl: Uri.parse('http://test'), httpClient: backend)),
       tokenStoreProvider.overrideWithValue(tokens),
     ];
+
+/// A chat answer in the server's shape.
+http.Response answer(String text, {List<Map<String, Object?>> sources = const [], List<String> toolsUsed = const []}) =>
+    json(200, {'answer': text, 'sources': sources, 'toolsUsed': toolsUsed});
+
+Map<String, Object?> source(int n, {bool cited = true, int page = 8}) =>
+    {'n': n, 'cited': cited, 'title': 'Acme Employee Handbook 2026', 'page': page, 'docId': 'acme', 'score': 0.7, 'text': 'Passage $n text.'};

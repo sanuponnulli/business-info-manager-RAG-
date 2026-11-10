@@ -3,14 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../config.dart';
+import '../ui/theme.dart';
 import 'auth_controller.dart';
 
 /// The seeded Acme users (server/prisma/seed.ts), one per role.
 const _demoPassword = 'Password123!';
 const _demoAccounts = [
-  (email: 'employee@acme.test', name: 'Sneha Nair', role: 'Employee', icon: Icons.person_outline),
-  (email: 'manager@acme.test', name: 'Arjun Menon', role: 'Manager · 8 reports', icon: Icons.groups_outlined),
-  (email: 'hr@acme.test', name: 'Fatima Al Mansoori', role: 'HR admin', icon: Icons.admin_panel_settings_outlined),
+  (email: 'employee@acme.test', name: 'Sneha Nair', role: 'Employee · own record only'),
+  (email: 'manager@acme.test', name: 'Arjun Menon', role: 'Manager · plus 8 direct reports'),
+  (email: 'hr@acme.test', name: 'Fatima Al Mansoori', role: 'HR admin · all employees'),
 ];
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -61,96 +62,113 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
                 key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(Icons.forum_outlined, size: 56, color: theme.colorScheme.primary),
-                    const SizedBox(height: 16),
-                    Text('Acme Assistant', textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Ask about company policy, your leave, pay and benefits.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _email,
-                      enabled: !_busy,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(labelText: 'Work email', prefixIcon: Icon(Icons.mail_outline)),
-                      validator: (v) => (v == null || !v.contains('@')) ? 'Enter your work email' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _password,
-                      enabled: !_busy,
-                      obscureText: _hidePassword,
-                      autofillHints: const [AutofillHints.password],
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _signIn(),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          tooltip: _hidePassword ? 'Show password' : 'Hide password',
-                          icon: Icon(_hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                          onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Center(child: BrandMark(size: 64)),
+                      const SizedBox(height: 20),
+                      Text('Acme Assistant', textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Answers from the employee handbook\nand your own HR record.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 32),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: ColoredBox(
+                          color: scheme.surfaceContainer,
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                controller: _email,
+                                enabled: !_busy,
+                                keyboardType: TextInputType.emailAddress,
+                                autocorrect: false,
+                                autofillHints: const [AutofillHints.email],
+                                textInputAction: TextInputAction.next,
+                                style: theme.textTheme.bodyLarge,
+                                decoration: _fieldDecoration('Work email'),
+                                validator: (v) => (v == null || !v.contains('@')) ? 'Enter your work email' : null,
+                              ),
+                              const Divider(indent: 16),
+                              TextFormField(
+                                controller: _password,
+                                enabled: !_busy,
+                                obscureText: _hidePassword,
+                                autofillHints: const [AutofillHints.password],
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) => _signIn(),
+                                style: theme.textTheme.bodyLarge,
+                                decoration: _fieldDecoration('Password').copyWith(
+                                  suffixIcon: IconButton(
+                                    tooltip: _hidePassword ? 'Show password' : 'Hide password',
+                                    color: scheme.onSurfaceVariant,
+                                    icon: Icon(_hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+                                    onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                                  ),
+                                ),
+                                validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(_error!, key: const Key('login-error'), style: TextStyle(color: theme.colorScheme.error)),
-                    ],
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _busy ? null : _signIn,
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                      child: _busy
-                          ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                          : const Text('Sign in'),
-                    ),
-                    if (showDemoAccounts) ...[
-                      const SizedBox(height: 32),
-                      Text('Demo accounts', style: theme.textTheme.titleSmall),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Same question, different answers: each role sees different HR data.',
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, size: 16, color: scheme.error),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  key: const Key('login-error'),
+                                  style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: _busy ? null : _signIn,
+                        child: _busy
+                            ? SizedBox.square(dimension: 20, child: CircularProgressIndicator.adaptive(strokeWidth: 2.5))
+                            : const Text('Sign in'),
                       ),
-                      const SizedBox(height: 8),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
+                      if (showDemoAccounts) ...[
+                        const SizedBox(height: 40),
+                        GroupedSection(
+                          header: 'Demo accounts',
+                          footer: 'Ask the same question as each person: what the assistant can see depends on their role.',
                           children: [
                             for (final a in _demoAccounts)
-                              ListTile(
-                                enabled: !_busy,
-                                leading: Icon(a.icon),
-                                title: Text(a.name),
-                                subtitle: Text(a.role),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () => _useDemo(a.email),
+                              GroupedRow(
+                                leading: Monogram(name: a.name),
+                                title: a.name,
+                                subtitle: a.role,
+                                chevron: true,
+                                onTap: _busy ? null : () => _useDemo(a.email),
                               ),
                           ],
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -159,4 +177,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+
+  /// A borderless field inside the grouped box (the box is the border).
+  InputDecoration _fieldDecoration(String hint) => InputDecoration(
+        hintText: hint,
+        filled: false,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      );
 }
