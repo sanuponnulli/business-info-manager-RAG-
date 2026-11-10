@@ -18,7 +18,7 @@ vi.mock("../src/services/rag.service.js", async (importOriginal) => ({
 import { gemini } from "../src/clients/gemini.js";
 import { retrieveContext } from "../src/services/rag.service.js";
 import { createApp } from "../src/app.js";
-import { answerQuestion, markCitations, MAX_SEARCH_ROUNDS } from "../src/services/answer.service.js";
+import { answerQuestion, markCitations, MAX_TOOL_ROUNDS } from "../src/services/answer.service.js";
 
 const generateContent = vi.mocked(gemini.models.generateContent);
 const app = createApp();
@@ -93,7 +93,7 @@ describe("POST /api/v1/chat/ask", () => {
     const res = await ask({ question: "hi" });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ answer: "Hi! Ask me anything about the handbook.", sources: [] });
+    expect(res.body).toEqual({ answer: "Hi! Ask me anything about the handbook.", sources: [], toolsUsed: [] });
     expect(retrieveContext).not.toHaveBeenCalled();
     expect(generateContent).toHaveBeenCalledTimes(1);
   });
@@ -116,8 +116,9 @@ describe("POST /api/v1/chat/ask", () => {
     await ask({ question: "How many sick days?" });
 
     const first = generateContent.mock.calls[0][0];
-    expect(first.config?.systemInstruction).toMatch(/call the search_handbook tool first/);
-    expect(first.config?.tools?.[0].functionDeclarations?.[0].name).toBe("search_handbook");
+    expect(first.config?.systemInstruction).toMatch(/search_handbook/);
+    expect(first.config?.systemInstruction).toMatch(/NOT signed in/); // no token → anonymous
+    expect(first.config?.tools?.[0].functionDeclarations?.map((d) => d.name)).toEqual(["search_handbook"]);
 
     // Second request = question, the model's call (signature intact), then our result with the same id.
     const contents = contentsOfCall(1);
@@ -144,7 +145,7 @@ describe("POST /api/v1/chat/ask", () => {
     ]);
   });
 
-  it("stops offering the tool after MAX_SEARCH_ROUNDS so it can't loop forever", async () => {
+  it("stops offering the tool after MAX_TOOL_ROUNDS so it can't loop forever", async () => {
     generateContent
       .mockResolvedValueOnce(searchRequest("a"))
       .mockResolvedValueOnce(searchRequest("b"))
@@ -153,7 +154,7 @@ describe("POST /api/v1/chat/ask", () => {
     const res = await ask({ question: "Something obscure?" });
 
     expect(res.status).toBe(200);
-    expect(retrieveContext).toHaveBeenCalledTimes(MAX_SEARCH_ROUNDS);
+    expect(retrieveContext).toHaveBeenCalledTimes(MAX_TOOL_ROUNDS);
     const modes = generateContent.mock.calls.map(([args]) => args.config?.toolConfig?.functionCallingConfig?.mode);
     expect(modes).toEqual(["AUTO", "AUTO", "AUTO", "NONE"]);
   });

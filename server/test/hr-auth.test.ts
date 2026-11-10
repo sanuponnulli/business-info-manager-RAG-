@@ -6,6 +6,7 @@ import { SignJWT } from "jose";
 // these tests free of Docker. (The real queries are checked in the README's curl steps.)
 vi.mock("../src/clients/chroma.js", () => ({ isChromaUp: async () => true }));
 vi.mock("../src/repositories/employee.repository.js", () => ({
+  refSelect: {},
   findCredentialsByEmail: vi.fn(),
   findAuthInfo: vi.fn(),
   findSummaryById: vi.fn(),

@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { pino } from "pino";
 
-vi.mock("../src/services/rag.service.js", () => ({
-  retrieveContext: vi.fn(async (query: string) => ({ chunks: [], contextText: `[1] passage about ${query}` })),
+vi.mock("../src/services/rag.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/services/rag.service.js")>()), // real formatContext
+  retrieveContext: vi.fn(async (query: string) => ({
+    chunks: [{ text: `passage about ${query}`, docId: "h", title: "Handbook", page: 1, score: 0.5 }],
+    contextText: "",
+  })),
 }));
 
 import { retrieveContext } from "../src/services/rag.service.js";
@@ -23,7 +27,7 @@ describe("runToolCalls", () => {
     expect(retrieveContext).toHaveBeenCalledWith("sick days");
     expect(deps.notify).toHaveBeenCalledWith("search_handbook", "sick days");
     expect(deps.respond).toHaveBeenCalledWith([
-      { id: "call-42", name: "search_handbook", response: { result: "[1] passage about sick days" } },
+      { id: "call-42", name: "search_handbook", response: { result: "[1] (Handbook, p. 1)\npassage about sick days" } },
     ]);
   });
 

@@ -3,7 +3,11 @@ import { gemini } from "../clients/gemini.js";
 import { env } from "../config/env.js";
 import type { Logger } from "pino";
 import type { ServerMessage } from "./protocol.js";
-import { runToolCalls, searchHandbookDeclaration } from "./tools.js";
+import { todayString } from "../lib/dates.js";
+import type { AuthUser } from "../middleware/userAuth.js";
+import { voiceInstruction } from "../tools/instructions.js";
+import { toolDeclarationsFor } from "../tools/registry.js";
+import { runToolCalls } from "./tools.js";
 
 /** Gemini Live expects raw 16-bit PCM at 16 kHz from the microphone. */
 const INPUT_AUDIO_MIME = "audio/pcm;rate=16000";
@@ -15,15 +19,6 @@ const INPUT_AUDIO_MIME = "audio/pcm;rate=16000";
  * client says "end" we add the pause ourselves.
  */
 const TRAILING_SILENCE = Buffer.alloc(16000 * 2).toString("base64");
-
-/** Voice-flavoured version of the text chat's grounding rules (answer.service.ts). */
-export const VOICE_SYSTEM_INSTRUCTION = `You are a friendly voice assistant for employees with questions about the company handbook.
-
-Rules:
-- For ANY question about company policies, leave, benefits, pay, hours or procedures, call the search_handbook tool first. Never answer such questions from memory.
-- Answer ONLY from the passages search_handbook returns. If they don't contain the answer, say you couldn't find it in the handbook and suggest asking HR. Do not guess.
-- You are speaking out loud: keep answers short and conversational, one to three sentences, no lists, no markdown, and don't read out passage numbers.
-- Small talk (greetings, thanks) needs no search.`;
 
 export interface LiveBridgeHandlers {
   /** Gemini is set up and ready to listen. */
@@ -47,7 +42,7 @@ export interface LiveBridge {
  * between Gemini's events and our own protocol (protocol.ts). The client
  * never talks to Gemini directly, so our API key never leaves the server.
  */
-export async function openLiveBridge(handlers: LiveBridgeHandlers, log: Logger): Promise<LiveBridge> {
+export async function openLiveBridge(handlers: LiveBridgeHandlers, log: Logger, user: AuthUser | null = null): Promise<LiveBridge> {
   let closed = false;
   // Calls Gemini has withdrawn (the user interrupted while we were searching).
   const cancelledCalls = new Set<string>();
@@ -83,7 +78,7 @@ export async function openLiveBridge(handlers: LiveBridgeHandlers, log: Logger):
       if (content.turnComplete && !waitingForAnswerAfterTool) handlers.onMessage({ type: "turn_complete" });
     }
 
-    // Gemini wants us to run search_handbook. It waits (silently) for our answer.
+    // Gemini wants us to run a tool (handbook search, leave balance, ...) as this user. It waits (silently) for our answer.
     if (msg.toolCall?.functionCalls?.length) {
       waitingForAnswerAfterTool = true;
       void runToolCalls(
@@ -96,6 +91,7 @@ export async function openLiveBridge(handlers: LiveBridgeHandlers, log: Logger):
           isCancelled: (id) => cancelledCalls.has(id),
         },
         log,
+        { user, today: todayString() },
       );
     }
     for (const id of msg.toolCallCancellation?.ids ?? []) cancelledCalls.add(id);
@@ -108,8 +104,9 @@ export async function openLiveBridge(handlers: LiveBridgeHandlers, log: Logger):
     model: env.LIVE_MODEL,
     config: {
       responseModalities: [Modality.AUDIO], // reply with speech
-      systemInstruction: VOICE_SYSTEM_INSTRUCTION,
-      tools: [{ functionDeclarations: [searchHandbookDeclaration] }],
+      // Both depend on who's signed in: not signed in = handbook only.
+      systemInstruction: voiceInstruction(user, todayString()),
+      tools: [{ functionDeclarations: toolDeclarationsFor(user) }],
       inputAudioTranscription: {}, // also send us text of what the user said...
       outputAudioTranscription: {}, // ...and of what the model said (for captions)
     },

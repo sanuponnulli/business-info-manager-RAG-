@@ -17,8 +17,12 @@ vi.mock("../src/clients/gemini.js", () => ({
     },
   },
 }));
-vi.mock("../src/services/rag.service.js", () => ({
-  retrieveContext: vi.fn(async () => ({ chunks: [], contextText: "[1] Ten days of sick leave." })),
+vi.mock("../src/services/rag.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/services/rag.service.js")>()), // real formatContext
+  retrieveContext: vi.fn(async () => ({
+    chunks: [{ text: "Ten days of sick leave.", docId: "h", title: "Handbook", page: 2, score: 0.7 }],
+    contextText: "",
+  })),
 }));
 
 import { openLiveBridge } from "../src/ws/liveSession.js";
@@ -35,9 +39,17 @@ beforeEach(async () => {
 });
 
 describe("openLiveBridge", () => {
-  it("gives Gemini the search_handbook tool", () => {
+  it("gives an anonymous caller only the search_handbook tool", () => {
     const tools = connectConfig.tools as { functionDeclarations: { name: string }[] }[];
-    expect(tools[0].functionDeclarations[0].name).toBe("search_handbook");
+    expect(tools[0].functionDeclarations.map((d) => d.name)).toEqual(["search_handbook"]);
+    expect(connectConfig.systemInstruction).toMatch(/NOT signed in/);
+  });
+
+  it("gives a signed-in manager the HR tools too", async () => {
+    await openLiveBridge({ onReady: vi.fn(), onMessage: vi.fn(), onClose: vi.fn() }, log, { id: 6, role: "MANAGER" });
+    const names = (connectConfig.tools as { functionDeclarations: { name: string }[] }[])[0].functionDeclarations.map((d) => d.name);
+    expect(names).toContain("get_my_leave_balances");
+    expect(names).toContain("get_team_leave");
   });
 
   it("answers a tool call with the matching id and tells the client", async () => {
@@ -45,7 +57,7 @@ describe("openLiveBridge", () => {
 
     await vi.waitFor(() => expect(fakeSession.sendToolResponse).toHaveBeenCalled());
     expect(fakeSession.sendToolResponse).toHaveBeenCalledWith({
-      functionResponses: [{ id: "c1", name: "search_handbook", response: { result: "[1] Ten days of sick leave." } }],
+      functionResponses: [{ id: "c1", name: "search_handbook", response: { result: "[1] (Handbook, p. 2)\nTen days of sick leave." } }],
     });
     expect(sent).toContainEqual({ type: "tool", name: "search_handbook", query: "sick days" });
   });

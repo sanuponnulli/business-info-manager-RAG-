@@ -113,7 +113,7 @@ Errors: `400 missing_file | not_a_pdf | invalid_fields`, `413 file_too_large`.
 #### `DELETE /api/v1/admin/documents/:docId`: delete a document
 `200 {"docId":"employee-handbook","deletedChunks":42}`, or `404 document_not_found`.
 
-### Chat endpoint (no auth)
+### Chat endpoint (sign-in optional)
 
 #### `POST /api/v1/chat/ask`
 ```json
@@ -125,6 +125,7 @@ Errors: `400 missing_file | not_a_pdf | invalid_fields`, `413 file_too_large`.
   ]
 }
 ```
+- `Authorization: Bearer <accessToken>` (from `POST /api/v1/auth/login`): optional. Without it the assistant only searches the handbook. With it, it can also look up the user's own HR records, and managers and HR can see their team's leave (see **HR tools and access** below). A bad or expired token gets `401`, not a handbook-only answer.
 - `question`: required, up to 2000 characters.
 - `history`: optional, at most 20 turns of up to 4000 characters each. The server stores no conversation state, so the client sends the recent turns with each question.
 
@@ -135,14 +136,30 @@ Response:
   "sources": [
     { "n": 1, "cited": true,  "title": "Employee Handbook", "page": 2, "docId": "employee-handbook", "score": 0.69, "text": "…" },
     { "n": 2, "cited": false, "title": "Employee Handbook", "page": 2, "docId": "employee-handbook", "score": 0.68, "text": "…" }
-  ]
+  ],
+  "toolsUsed": ["search_handbook"]
 }
 ```
-`[n]` in the answer refers to `sources[].n`. Show the sources where `cited: true` as references (for example "Employee Handbook, p. 2"). If the handbook doesn't cover the question, the answer says so and suggests contacting HR. It doesn't guess.
+`[n]` in the answer refers to `sources[].n`. Answers from HR records carry no `[n]`; `toolsUsed` shows where an answer came from. Show the sources where `cited: true` as references (for example "Employee Handbook, p. 2"). If the handbook doesn't cover the question, the answer says so and suggests contacting HR. It doesn't guess.
+
+### HR tools and access
+
+The assistant (text and voice) answers from two places: the handbook in ChromaDB (policies) and the HR database (the user's own records). The tools live in [`src/tools/registry.ts`](src/tools/registry.ts), and the role rules in [`src/auth/permissions.ts`](src/auth/permissions.ts).
+
+| Tool | Not signed in | Employee | Manager | HR admin |
+|---|---|---|---|---|
+| `search_handbook` | ✓ | ✓ | ✓ | ✓ |
+| `get_my_profile`, `get_my_leave_balances`, `list_my_leave_requests`, `get_my_holidays`, `get_my_pay`, `get_my_benefits` | | own | own | own |
+| `find_colleagues` | | colleagues (no terminated; hire date and status only for own reports) | same, plus details of direct reports | everyone, with details |
+| `get_team_leave` | | | direct reports | everyone |
+
+How it's enforced: the model is only offered the tools the role allows. Each call re-reads the user's role from the database before running. Every query is filtered by role (for example `manager_id = <me>`). No tool takes an employee id: who the user is comes only from the token. Check it against the real database with `npx tsx --env-file=.env scripts/try-hr-tools.ts`.
 
 ---
 
 ## Voice WebSocket: `ws://<host>/ws/voice-agent`
+
+Optional sign-in: connect to `ws://<host>/ws/voice-agent?token=<accessToken>` (browsers can't set headers on a WebSocket). Without a token the agent only searches the handbook. An invalid token gets `401` before the connection opens.
 
 One connection is one voice conversation, and the agent remembers what was said earlier in it. Every frame is a **JSON text frame** with a `type` field. Binary frames are rejected. The authoritative definitions are in [`src/ws/protocol.ts`](src/ws/protocol.ts).
 

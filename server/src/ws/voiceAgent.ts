@@ -1,7 +1,9 @@
 import type { Server } from "node:http";
+import type { Duplex } from "node:stream";
 import { WebSocketServer, WebSocket } from "ws";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
+import { resolveUser, type AuthUser } from "../middleware/userAuth.js";
 import { parseClientMessage, type ClientMessage, type ServerMessage } from "./protocol.js";
 import { openLiveBridge, type LiveBridge } from "./liveSession.js";
 
@@ -48,17 +50,34 @@ export function attachVoiceAgent(server: Server, options: VoiceAgentOptions = {}
   } = options;
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_FRAME_BYTES });
 
-  server.on("upgrade", (req, socket, head) => {
-    const { pathname } = new URL(req.url ?? "/", "http://localhost");
-    if (pathname !== VOICE_PATH) {
-      socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-      socket.destroy();
-      return;
+  const reject = (socket: Duplex, status: string) => {
+    socket.write(`HTTP/1.1 ${status}\r\nConnection: close\r\n\r\n`);
+    socket.destroy();
+  };
+
+  server.on("upgrade", async (req, socket, head) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    if (url.pathname !== VOICE_PATH) return reject(socket, "404 Not Found");
+
+    // Optional sign-in. Browsers can't set headers on a WebSocket, so the
+    // token comes as ?token=<accessToken>. No token = handbook only; a bad
+    // or expired token is refused before the connection opens.
+    let user: AuthUser | null = null;
+    const token = url.searchParams.get("token");
+    if (token !== null) {
+      try {
+        user = await resolveUser(token);
+      } catch (err) {
+        logger.error({ err }, "Voice sign-in check failed");
+        return reject(socket, "503 Service Unavailable");
+      }
+      if (!user) return reject(socket, "401 Unauthorized");
     }
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req, user));
   });
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, _req, user: AuthUser | null = null) => {
     // wss.clients already includes this new socket, hence ">".
     if (wss.clients.size > maxSessions) {
       logger.warn({ maxSessions }, "Voice session refused: at capacity");
@@ -66,7 +85,7 @@ export function attachVoiceAgent(server: Server, options: VoiceAgentOptions = {}
       ws.close(CLOSE.tryAgainLater, "Server busy");
       return;
     }
-    void handleConnection(ws, idleTimeoutMs);
+    void handleConnection(ws, idleTimeoutMs, user);
   });
 
   // Heartbeat: ping every client; one that hasn't answered the previous ping
@@ -108,8 +127,8 @@ export function send(ws: WebSocket, message: ServerMessage): void {
  * two together and makes sure that when either side goes away, the other
  * is closed too (no orphaned Gemini sessions costing money).
  */
-async function handleConnection(ws: WebSocket, idleTimeoutMs: number): Promise<void> {
-  const log = logger.child({ ws: Math.random().toString(36).slice(2, 8) });
+async function handleConnection(ws: WebSocket, idleTimeoutMs: number, user: AuthUser | null): Promise<void> {
+  const log = logger.child({ ws: Math.random().toString(36).slice(2, 8), userId: user?.id ?? null });
   log.info("Voice client connected");
 
   let bridge: LiveBridge | null = null;
@@ -172,6 +191,7 @@ async function handleConnection(ws: WebSocket, idleTimeoutMs: number): Promise<v
         },
       },
       log,
+      user,
     );
     // The client may have hung up while we were still connecting.
     if (ws.readyState !== WebSocket.OPEN) bridge.close();

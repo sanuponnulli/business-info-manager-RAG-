@@ -17,11 +17,11 @@ const AskBody = z.object({
     .default([]),
 });
 
-/** POST /api/v1/chat/ask  { question, history? } → { answer, sources } */
+/** POST /api/v1/chat/ask  { question, history? } → { answer, sources, toolsUsed }. Optional bearer token (see chat.routes.ts). */
 export const ask: RequestHandler = async (req, res) => {
   const body = AskBody.safeParse(req.body);
   if (!body.success) {
     throw new HttpError(400, "invalid_body", body.error.issues.map((i) => `${i.path.join(".") || "body"}: ${i.message}`).join("; "));
   }
-  res.json(await answerQuestion(body.data.question, body.data.history));
+  res.json(await answerQuestion(body.data.question, body.data.history, req.user ?? null));
 };

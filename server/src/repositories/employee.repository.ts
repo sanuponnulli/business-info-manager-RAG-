@@ -10,7 +10,7 @@ import type { Prisma } from "../generated/prisma/client.js";
  * pulls password hashes or other fields it has no use for.
  */
 
-const refSelect = { id: true, firstName: true, lastName: true, jobTitle: true } satisfies Prisma.EmployeeSelect;
+export const refSelect = { id: true, firstName: true, lastName: true, jobTitle: true } satisfies Prisma.EmployeeSelect;
 
 const summarySelect = {
   id: true,
@@ -57,4 +57,37 @@ export function findSummaryById(id: number): Promise<EmployeeSummaryRow | null> 
 
 export function findMyProfileById(id: number): Promise<MyProfileRow | null> {
   return prisma.employee.findUnique({ where: { id }, select: myProfileSelect });
+}
+
+const directorySelect = {
+  ...refSelect,
+  email: true,
+  managerId: true,
+  hireDate: true,
+  employmentType: true,
+  status: true,
+  department: { select: { name: true } },
+  location: { select: { name: true } },
+  manager: { select: refSelect },
+} satisfies Prisma.EmployeeSelect;
+
+export type DirectoryRow = Prisma.EmployeeGetPayload<{ select: typeof directorySelect }>;
+
+/** A page of employees matching `where` (built by the service, including its access filter), plus the total count. */
+export async function searchEmployees(where: Prisma.EmployeeWhereInput, take: number): Promise<{ rows: DirectoryRow[]; total: number }> {
+  // Two separate queries in parallel (a page and a count); they don't need to be one transaction.
+  const [rows, total] = await Promise.all([
+    prisma.employee.findMany({ where, take, orderBy: [{ lastName: "asc" }, { firstName: "asc" }], select: directorySelect }),
+    prisma.employee.count({ where }),
+  ]);
+  return { rows, total };
+}
+
+/** The employee's office: decides their holidays. */
+export async function findLocationOf(id: number) {
+  const row = await prisma.employee.findUnique({
+    where: { id },
+    select: { location: { select: { id: true, code: true, name: true, country: true, timezone: true } } },
+  });
+  return row?.location ?? null;
 }

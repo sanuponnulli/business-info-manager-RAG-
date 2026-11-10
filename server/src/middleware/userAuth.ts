@@ -22,24 +22,50 @@ declare global {
 const unauthorized = () => new HttpError(401, "unauthorized", "Missing, invalid or expired access token");
 
 /**
- * Lets a request through only with a valid `Authorization: Bearer <token>`
- * header, and records who the caller is on req.user.
+ * Turns an access token into the user it belongs to, or null if the token is
+ * forged, expired, or belongs to someone who may no longer sign in.
  *
- * The role and status are read from the database on every request, not from
- * the token: a token stays valid for an hour, and someone terminated or
- * demoted in that hour should lose access straight away.
+ * The role and status are read from the database every time, not from the
+ * token: a token stays valid for an hour, and someone terminated or demoted
+ * in that hour should lose access straight away.
  */
-export const requireUser: RequestHandler = async (req, _res, next) => {
-  const [scheme, token] = req.header("authorization")?.split(" ") ?? [];
-  if (scheme?.toLowerCase() !== "bearer" || !token) throw unauthorized();
-
+export async function resolveUser(token: string): Promise<AuthUser | null> {
   const employeeId = await verifyAccessToken(token);
-  if (!employeeId) throw unauthorized();
-
+  if (!employeeId) return null;
   const employee = await findAuthInfo(employeeId);
-  if (!employee || employee.status === "TERMINATED") throw unauthorized();
+  if (!employee || employee.status === "TERMINATED") return null;
+  return { id: employee.id, role: employee.role };
+}
 
-  req.user = { id: employee.id, role: employee.role };
+/** The token from an `Authorization: Bearer <token>` header; undefined if there's no such header. */
+function bearerToken(req: Request): string | undefined {
+  const header = req.header("authorization");
+  if (header === undefined) return undefined;
+  const [scheme, token] = header.split(" ");
+  return scheme?.toLowerCase() === "bearer" && token ? token : "";
+}
+
+/** Lets a request through only with a valid bearer token, and records who the caller is on req.user. */
+export const requireUser: RequestHandler = async (req, _res, next) => {
+  const token = bearerToken(req);
+  const user = token ? await resolveUser(token) : null;
+  if (!user) throw unauthorized();
+  req.user = user;
+  next();
+};
+
+/**
+ * For routes that work both signed in and anonymously (chat: the handbook is
+ * public, HR records aren't). No Authorization header → anonymous. A header
+ * with a bad or expired token → 401, so the app finds out its token expired
+ * instead of silently getting handbook-only answers.
+ */
+export const optionalUser: RequestHandler = async (req, _res, next) => {
+  const token = bearerToken(req);
+  if (token === undefined) return next();
+  const user = token ? await resolveUser(token) : null;
+  if (!user) throw unauthorized();
+  req.user = user;
   next();
 };
 
