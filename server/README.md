@@ -37,7 +37,7 @@ Every setting is listed and explained in [`.env.example`](.env.example). The ser
 
 ### HR database
 
-The server also holds the HR data of the fictional company **Acme** (people, leave, pay, benefits) in Postgres, through Prisma. The HR endpoints will be served by this same server under `/api/v1/...`; their contract is [`docs/hr-openapi.yaml`](docs/hr-openapi.yaml) (22 endpoints, not implemented yet).
+The server also holds the HR data of the fictional company **Acme** (people, leave, pay, benefits) in Postgres, through Prisma. The assistant reads it through role-checked tools (see **HR tools and access**). The planned REST endpoints are described in [`docs/hr-openapi.yaml`](docs/hr-openapi.yaml); so far `POST /api/v1/auth/login` and `GET /api/v1/me` are implemented.
 
 ```bash
 docker compose up -d hr-db     # from the repo root: Postgres on localhost:5433
@@ -142,6 +142,8 @@ Response:
 ```
 `[n]` in the answer refers to `sources[].n`. Answers from HR records carry no `[n]`; `toolsUsed` shows where an answer came from. Show the sources where `cited: true` as references (for example "Employee Handbook, p. 2"). If the handbook doesn't cover the question, the answer says so and suggests contacting HR. It doesn't guess.
 
+If Gemini is overloaded (both the main and the fallback model fail or time out), the server answers `503 {"error":{"code":"ai_busy","message":"The AI service is busy right now. Please try again in a moment."}}` within about 22 seconds. Show that message and let the user retry.
+
 ### HR tools and access
 
 The assistant (text and voice) answers from two places: the handbook in ChromaDB (policies) and the HR database (the user's own records). The tools live in [`src/tools/registry.ts`](src/tools/registry.ts), and the role rules in [`src/auth/permissions.ts`](src/auth/permissions.ts).
@@ -224,11 +226,12 @@ The server also closes with **1001** when it shuts down, and pings every 30 s to
 | Chunks → vectors | `src/services/embedding.service.ts` | Batches of 100, retried on 429/5xx. `RETRIEVAL_DOCUMENT` for stored chunks, `RETRIEVAL_QUERY` for questions |
 | Ingestion | `src/services/ingestion.service.ts` | In-memory queue, one job at a time. **Embeds first, then deletes the old version and adds the new one**, so a failed upload never empties a document |
 | Retrieval | `src/services/rag.service.ts` | `retrieveContext(query, k=3)`: cosine search, then numbered `[n]` passages. Shared by text and voice |
-| Text answers | `src/services/answer.service.ts` | Grounding prompt, then `CHAT_MODEL` (one try, 12 s limit), falling back to `CHAT_FALLBACK_MODEL` on 5xx/429/timeout |
-| Voice | `src/ws/voiceAgent.ts`, `liveSession.ts`, `tools.ts` | One Gemini Live session per client. Gemini calls `search_handbook` → `retrieveContext` |
+| Text answers | `src/services/answer.service.ts` | Tool-calling loop. `CHAT_MODEL` gets one try (10 s limit), then `CHAT_FALLBACK_MODEL` one try (12 s) on 5xx/429/timeout, then `503 ai_busy` |
+| Tools and access | `src/tools/registry.ts`, `src/auth/permissions.ts` | One tool list for text and voice. Each call re-checks the role in the database, validates the model's arguments, and the services turn the role into the SQL filter |
+| Voice | `src/ws/voiceAgent.ts`, `liveSession.ts`, `tools.ts` | One Gemini Live session per client, with the same tools as text chat for the signed-in user |
 
 ### Known limitations
-- **No user authentication** on `/chat/ask` or the voice WebSocket yet.
+- **HR data is read-only**: the assistant can look up leave, pay and benefits but can't submit or approve leave yet.
 - **Jobs are in memory**: an upload still processing when the server stops is lost, and the previous version of that document stays. Run a single server instance.
 - **Follow-up questions in text chat** are searched as typed. A very vague follow-up ("what about part-timers?") may retrieve poorly. Rewriting the question with the history before searching would fix this.
 - **Text-only PDFs**: scanned documents (images of pages) would need OCR.

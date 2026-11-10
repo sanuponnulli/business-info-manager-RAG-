@@ -8,6 +8,7 @@ import {
 import { gemini } from "../clients/gemini.js";
 import { env } from "../config/env.js";
 import { todayString } from "../lib/dates.js";
+import { HttpError } from "../lib/httpError.js";
 import { logger } from "../lib/logger.js";
 import { isRetryable, withRetry } from "../lib/retry.js";
 import type { AuthUser } from "../middleware/userAuth.js";
@@ -93,12 +94,19 @@ export async function answerQuestion(question: string, history: ChatTurn[] = [],
  * A person is waiting for this answer, so we don't sit on a struggling model:
  * CHAT_MODEL gets ONE try with a short time limit. If that fails with a
  * temporary error (503 "high demand", 504, timeout, rate limit), the request
- * goes straight to CHAT_FALLBACK_MODEL, which gets the normal time limit and
- * one retry. Once we've fallen back, the rest of this answer's rounds stay on
- * the fallback model rather than trying the struggling one again each time.
+ * goes straight to CHAT_FALLBACK_MODEL, which also gets one try. Once we've
+ * fallen back, the rest of this answer's rounds stay on the fallback model
+ * rather than trying the struggling one again each time.
+ *
+ * If both fail, the person gets a clear "busy, try again" (503 ai_busy) after
+ * about 22 seconds at worst, instead of a minute of waiting and a generic 500.
+ * When Gemini is overloaded, retrying a second later rarely helps.
+ * (10s is the shortest time limit Gemini accepts; it rejects anything lower with a 400.)
  */
-const PRIMARY = { retries: 0, timeoutMs: 12_000 };
-const FALLBACK = { retries: 1, timeoutMs: 30_000 };
+const PRIMARY = { retries: 0, timeoutMs: 10_000 };
+const FALLBACK = { retries: 0, timeoutMs: 12_000 };
+
+const aiBusy = () => new HttpError(503, "ai_busy", "The AI service is busy right now. Please try again in a moment.");
 
 type Generate = (contents: Content[], toolsAllowed: boolean) => Promise<GenerateContentResponse>;
 
@@ -113,20 +121,32 @@ function createGenerator(setup: Setup): Generate {
   const hasFallback = Boolean(fallback) && fallback !== env.CHAT_MODEL;
   let usingFallback = false;
 
-  return async (contents, toolsAllowed) => {
+  const attempt: Generate = async (contents, toolsAllowed) => {
     if (!usingFallback) {
       try {
         return await generate(env.CHAT_MODEL, setup, contents, toolsAllowed, hasFallback ? PRIMARY : FALLBACK);
       } catch (err) {
         if (!hasFallback || !isRetryable(err)) throw err;
-        const reason = err instanceof Error ? (err.name === "AbortError" ? "timed out" : err.message.slice(0, 120)) : String(err);
-        logger.warn({ model: env.CHAT_MODEL, fallback, reason }, "Chat model unavailable, using fallback");
+        logger.warn({ model: env.CHAT_MODEL, fallback, reason: reasonOf(err) }, "Chat model unavailable, using fallback");
         usingFallback = true;
       }
     }
     return generate(fallback, setup, contents, toolsAllowed, FALLBACK);
   };
+
+  return async (contents, toolsAllowed) => {
+    try {
+      return await attempt(contents, toolsAllowed);
+    } catch (err) {
+      if (!isRetryable(err)) throw err;
+      logger.warn({ reason: reasonOf(err) }, "No chat model available, answering ai_busy");
+      throw aiBusy();
+    }
+  };
 }
+
+const reasonOf = (err: unknown) =>
+  err instanceof Error ? (err.name === "AbortError" || err.name === "TimeoutError" ? "timed out" : err.message.slice(0, 120)) : String(err);
 
 async function generate(
   model: string,

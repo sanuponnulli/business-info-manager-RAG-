@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import { ApiError } from "@google/genai";
 
@@ -42,10 +42,7 @@ describe("markCitations", () => {
   });
 });
 
-// Called directly (not over HTTP) so fake timers can skip the retry wait
-// without freezing supertest's own networking.
 describe("answerQuestion fallback", () => {
-  afterEach(() => vi.useRealTimers());
 
   it("goes straight to the backup model when the main one is overloaded (no retry)", async () => {
     generateContent
@@ -71,7 +68,21 @@ describe("answerQuestion fallback", () => {
       .mockResolvedValueOnce({ text: "ok" } as never);
     await answerQuestion("q");
     const timeouts = generateContent.mock.calls.map(([args]) => args.config?.httpOptions?.timeout);
-    expect(timeouts).toEqual([12_000, 30_000]);
+    expect(timeouts).toEqual([10_000, 12_000]);
+  });
+
+  it("answers 503 ai_busy quickly when both models are overloaded, without extra retries", async () => {
+    generateContent.mockRejectedValue(new ApiError({ message: "high demand", status: 503 }));
+    const res = await ask({ question: "How many sick days?" });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe("ai_busy");
+    expect(generateContent).toHaveBeenCalledTimes(2); // one try each: main, then fallback
+  });
+
+  it("still reports a real bug (not an outage) as a 500", async () => {
+    generateContent.mockRejectedValue(new ApiError({ message: "bad request", status: 400 }));
+    expect((await ask({ question: "q" })).status).toBe(500);
   });
 });
 
