@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Acme Employee Handbook 2026</title>
+<!--
+  Source of fixtures/acme-employee-handbook.pdf, a fictional handbook for demo
+  ingestion. Its numbers match the HR seed data (prisma/seed.ts): leave
+  entitlements, carry-over, holidays, pay rules and benefit plans.
+  Rebuild the PDF: see fixtures/acme-handbook/README.md
+-->
+<style>
+  @page { size: A4; margin: 22mm 20mm 22mm 20mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1d2433; }
+  h1 { font-size: 21pt; color: #24409e; margin: 0 0 6mm; padding-bottom: 2mm; border-bottom: 2px solid #24409e; break-before: page; }
+  h2 { font-size: 13pt; color: #24409e; margin: 6mm 0 2mm; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.5pt; break-inside: avoid; }
+  th, td { border: 1px solid #c9d0de; padding: 1.6mm 2.2mm; text-align: left; vertical-align: top; }
+  th { background: #eef2fb; }
+  .note { background: #f4f6fb; border-left: 3px solid #24409e; padding: 2.5mm 3.5mm; margin: 3mm 0; break-inside: avoid; }
+  .cover { height: 245mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover .brand { font-size: 13pt; letter-spacing: .25em; color: #24409e; font-weight: 700; }
+  .cover h1 { border: 0; font-size: 34pt; break-before: auto; margin: 4mm 0; color: #1d2433; }
+  .cover .meta { color: #5a6478; margin-top: 10mm; }
+  .toc ol { columns: 2; column-gap: 10mm; }
+  .faq h3 { color: #24409e; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="brand">ACME</div>
+  <h1>Employee Handbook 2026</h1>
+  <p style="font-size:13pt">Policies, pay, leave, benefits and how we work together, for everyone at Acme in Dubai, Kochi, Bengaluru and London.</p>
+  <p class="meta">Version 3.2 · Effective 1 January 2026 · Owner: People &amp; HR (hr@acme.test)<br>
+  Acme is a fictional company. This handbook is sample content for a demo.</p>
+</section>
+
+<section class="toc">
+  <h1>Contents</h1>
+  <ol>
+    <li>Welcome to Acme</li>
+    <li>Our values and code of conduct</li>
+    <li>Working hours, attendance and remote work</li>
+    <li>Leave: annual, sick, personal, parental and unpaid</li>
+    <li>Requesting and approving leave</li>
+    <li>Public holidays 2026</li>
+    <li>Pay and payroll</li>
+    <li>Benefits</li>
+    <li>Expenses and business travel</li>
+    <li>Equipment, IT and information security</li>
+    <li>Learning and development</li>
+    <li>Performance, probation and promotions</li>
+    <li>Dress code and workplace</li>
+    <li>Health, safety and wellbeing</li>
+    <li>Respect at work, grievances and whistleblowing</li>
+    <li>Your personal data and who can see it</li>
+    <li>Leaving Acme</li>
+    <li>Using the Acme Assistant</li>
+    <li>Frequently asked questions</li>
+    <li>Contacts</li>
+  </ol>
+  <p>Where a local law gives you more than this handbook does, the law applies. Where this handbook gives you more than the law, the handbook applies. If anything here is unclear, ask your manager or write to hr@acme.test.</p>
+</section>
+
+<!-- 1 -->
+<h1>1. Welcome to Acme</h1>
+<p>Acme builds Acme Flow, a workflow and approvals platform used by more than 900 mid-sized companies in the Middle East, India and Europe. We are about 130 people across four offices and eight departments, and we work as one team across three time zones.</p>
+<h2>Our offices</h2>
+<table>
+  <tr><th>Office</th><th>Code</th><th>City and country</th><th>Time zone</th><th>Pay currency</th></tr>
+  <tr><td>Dubai HQ</td><td>DXB</td><td>Dubai, United Arab Emirates</td><td>Asia/Dubai (GMT+4)</td><td>AED</td></tr>
+  <tr><td>Kochi Office</td><td>COK</td><td>Kochi, Kerala, India</td><td>Asia/Kolkata (GMT+5:30)</td><td>INR</td></tr>
+  <tr><td>Bengaluru Office</td><td>BLR</td><td>Bengaluru, Karnataka, India</td><td>Asia/Kolkata (GMT+5:30)</td><td>INR</td></tr>
+  <tr><td>London Office</td><td>LON</td><td>London, United Kingdom</td><td>Europe/London (GMT/BST)</td><td>GBP</td></tr>
+</table>
+<p>All four offices work Monday to Friday. Saturday and Sunday are the weekend everywhere, including Dubai.</p>
+<h2>Our departments</h2>
+<p>Executive, Engineering, Product, Design, Sales, Marketing, Finance, and People &amp; HR. Engineering is our largest team and sits mainly in Kochi and Bengaluru, with a small group in London. Sales and Finance are based mainly in Dubai.</p>
+<h2>How this handbook works</h2>
+<p>This handbook applies to everyone employed by Acme: full-time, part-time and fixed-term contract staff. Where a rule differs for part-time or contract staff, or by country, it says so. Country rules follow the office in your employment contract, not where you happen to be working on a given day.</p>
+<p>People &amp; HR reviews the handbook every year in December. Changes take effect on 1 January unless a change is announced earlier with at least 30 days' notice.</p>
+
+<!-- 2 -->
+<h1>2. Our values and code of conduct</h1>
+<h2>Our values</h2>
+<ul>
+  <li><strong>Customers first, always honestly.</strong> We tell customers what Acme Flow can and cannot do.</li>
+  <li><strong>Write it down.</strong> Decisions, plans and handovers live in writing so colleagues in other time zones can follow.</li>
+  <li><strong>Own the outcome.</strong> If you see a problem, you own it until it reaches the right person.</li>
+  <li><strong>Kind and direct.</strong> Give clear feedback, with respect. Assume good intent.</li>
+  <li><strong>Leave it better.</strong> Improve the code, the process or the document you touched.</li>
+</ul>
+<h2>Code of conduct</h2>
+<p>Everyone at Acme is expected to act with integrity, follow the law in every country where we operate, and treat colleagues, customers and partners with respect. In particular:</p>
+<ul>
+  <li><strong>Conflicts of interest.</strong> Tell your manager and HR in writing about any outside business, investment or relationship that could influence your decisions at Acme, including a close relationship with a colleague you manage or a supplier you choose.</li>
+  <li><strong>Outside work.</strong> You may take on paid work outside Acme only if it does not compete with Acme, does not use Acme time or equipment, and your manager has approved it in writing. Contract staff should check their own contract.</li>
+  <li><strong>Gifts and hospitality.</strong> You may accept gifts or hospitality worth up to USD 100 (or the local equivalent) per person per year from any one company. Anything above that must be declared to Finance at finance@acme.test, and cash or vouchers must always be declined.</li>
+  <li><strong>Anti-bribery.</strong> Never offer, pay or accept a bribe or a "facilitation payment", whatever the amount. Report any request to legal@acme.test immediately.</li>
+  <li><strong>Confidentiality.</strong> Customer data, unreleased product plans, salaries and financial results are confidential. Do not share them outside Acme, and inside Acme only with people who need them for their work.</li>
+  <li><strong>Social media.</strong> You are welcome to say you work at Acme. Do not speak on Acme's behalf, share confidential information, or post about customers without their permission. Press questions go to marketing@acme.test.</li>
+</ul>
+<p>Breaking the code of conduct may lead to disciplinary action, up to and including dismissal.</p>
+
+<!-- 3 -->
+<h1>3. Working hours, attendance and remote work</h1>
+<h2>Working hours</h2>
+<p>A full-time working week is 40 hours, Monday to Friday, including a one-hour lunch break each day. Part-time staff work the hours in their contract, which is normally 60% of full time (24 hours a week).</p>
+<p>Each office has <strong>core hours</strong> when everyone is expected to be reachable for meetings:</p>
+<table>
+  <tr><th>Office</th><th>Core hours (local time)</th><th>Typical working day</th></tr>
+  <tr><td>Dubai HQ</td><td>10:00 to 15:00</td><td>09:00 to 18:00</td></tr>
+  <tr><td>Kochi and Bengaluru</td><td>11:00 to 16:00</td><td>09:30 to 18:30</td></tr>
+  <tr><td>London</td><td>10:00 to 15:00</td><td>09:00 to 17:30</td></tr>
+</table>
+<p>Outside core hours you can arrange your day flexibly with your team. Please keep your calendar up to date so colleagues in other time zones can see when you are available.</p>
+<h2>Overtime</h2>
+<p>We do not expect regular overtime. If a release or customer incident needs you to work late or at a weekend, agree it with your manager in advance where possible. Weekend or public holiday work is compensated with time off in lieu: one day off for each day worked, to be taken within 60 days. Where local law requires overtime pay (for example for some roles in the UAE and India), Payroll pays it instead.</p>
+<h2>Attendance and lateness</h2>
+<p>If you will be late or cannot work on a given day, tell your manager before your normal start time, by message or phone. If you are ill, follow the sick leave rules in section 4.</p>
+<h2>Remote and hybrid work</h2>
+<p>Acme is a hybrid company. The default is <strong>three office days a week</strong> (Tuesday, Wednesday and Thursday are the team days) and up to two days working from home.</p>
+<ul>
+  <li><strong>Fully remote roles</strong> exist only where the job offer says so.</li>
+  <li><strong>Working from home</strong> requires a quiet place to work, a reliable internet connection of at least 20 Mbps, and that you can join video calls with your camera on.</li>
+  <li><strong>Home office allowance.</strong> Everyone who works from home at least one day a week can claim a one-off home office allowance of AED 1,500, INR 25,000 or GBP 300 for a chair, desk or monitor, through the expenses process.</li>
+  <li><strong>Working from another country.</strong> You may work from outside the country of your contract for up to <strong>20 working days per calendar year</strong>, with your manager's approval and HR's confirmation at least two weeks before you travel. Longer periods create tax and immigration issues and are not allowed.</li>
+  <li><strong>Remote work is a privilege, not a right.</strong> A manager can ask a team member to come to the office more often for onboarding, a project, or performance reasons, with one week's notice.</li>
+</ul>
+<p>New joiners work from the office every working day for their first four weeks, to meet the team and settle in.</p>
+
+<!-- 4 -->
+<h1>4. Leave: annual, sick, personal, parental and unpaid</h1>
+<p>Acme has five types of leave. Annual, sick and personal leave have a yearly balance. Parental and unpaid leave do not; they are approved case by case. The leave year is the calendar year, 1 January to 31 December.</p>
+<h2>4.1 Leave entitlements by country</h2>
+<p>Entitlements depend on the country of your office and are counted in <strong>working days</strong>. Weekends and public holidays inside a leave period do not count against your balance.</p>
+<table>
+  <tr><th>Leave type</th><th>UAE (Dubai)</th><th>India (Kochi, Bengaluru)</th><th>UK (London)</th></tr>
+  <tr><td>Annual leave</td><td>30 days</td><td>24 days</td><td>25 days</td></tr>
+  <tr><td>Sick leave (paid)</td><td>15 days</td><td>12 days</td><td>10 days</td></tr>
+  <tr><td>Personal leave</td><td>3 days</td><td>3 days</td><td>3 days</td></tr>
+  <tr><td>Parental leave</td><td colspan="3">See section 4.6. No yearly balance.</td></tr>
+  <tr><td>Unpaid leave</td><td colspan="3">See section 4.7. No yearly balance.</td></tr>
+</table>
+<h3>Part-time staff</h3>
+<p>Part-time staff receive <strong>60%</strong> of the full-time annual, sick and personal leave. Sick and personal leave are rounded to the nearest whole day. For example, a part-time employee in Kochi gets 14.4 days of annual leave, 7 days of sick leave and 2 days of personal leave.</p>
+<h3>Contract staff</h3>
+<p>Fixed-term contract staff receive <strong>12 days</strong> of annual leave per year in every country, plus the full sick and personal leave for their country, unless their contract says otherwise.</p>
+<h3>Joining during the year</h3>
+<p>If you join during the year, your annual leave for that first year is pro-rated by the number of whole months left in the year, counting the month you join, and rounded to the nearest half day. For example, someone in Dubai who joins in July gets 30 × 6 ÷ 12 = 15 days of annual leave for that year. Sick and personal leave are not pro-rated.</p>
+<h2>4.2 Annual leave</h2>
+<p>Annual leave is for holidays, rest and anything else you choose. We want everyone to take their full annual leave each year; managers will remind you if you have taken little leave by September.</p>
+<ul>
+  <li>Annual leave is paid at your normal base pay plus allowances.</li>
+  <li>The smallest unit of leave is half a day.</li>
+  <li>You may not take more than 15 consecutive working days of annual leave at once without your department head's approval.</li>
+  <li>Annual leave cannot be exchanged for money, except for untaken leave when you leave Acme (see section 17).</li>
+</ul>
+<h2>4.3 Carry-over</h2>
+<p>You may carry over <strong>up to 5 days</strong> of unused annual leave into the next year. Carried-over days are added to the next year's balance on 1 January and can be used at any time during that year. Any unused annual leave above 5 days is lost on 31 December, so plan ahead. Sick and personal leave do not carry over.</p>
+<div class="note"><strong>How your balance is calculated.</strong> Remaining days = days entitled this year + days carried over − days already taken. Days in requests that are still <em>pending</em> are not yet subtracted, so your <em>available</em> days are the remaining days minus your pending requests. The Acme Assistant and the HR app show both numbers.</div>
+<h2>4.4 Sick leave</h2>
+<p>If you are too unwell to work, tell your manager before your normal start time on the first day, and record the absence as sick leave in the HR app on the day you return at the latest.</p>
+<ul>
+  <li><strong>Medical certificate.</strong> For absences of up to three consecutive working days you do not need a doctor's note. If you are off sick for <strong>more than three consecutive working days</strong>, you must provide a medical certificate from a licensed doctor, uploaded to the HR app within two working days of returning.</li>
+  <li><strong>Paid sick leave</strong> is paid at full base pay plus allowances, up to your yearly sick leave balance (15, 12 or 10 days by country).</li>
+  <li><strong>Longer illness.</strong> If you need more sick leave than your balance, talk to HR. Further time off is covered first by any statutory sick pay in your country (for example UK Statutory Sick Pay), then by annual leave if you choose, and then by unpaid leave. HR will agree a plan with you and your manager, and may ask for an occupational health assessment.</li>
+  <li><strong>Medical appointments</strong> that take less than half a day do not need to be booked as leave; just tell your manager. Longer appointments are booked as half a day of sick leave.</li>
+  <li><strong>Caring for a sick child or partner</strong> is covered by personal leave, not sick leave.</li>
+  <li>Falling ill during annual leave: if you have a medical certificate, the sick days are converted to sick leave and your annual leave days are given back.</li>
+</ul>
+<h2>4.5 Personal leave</h2>
+<p>Personal leave is <strong>3 days a year</strong> for things that cannot be done outside working hours: moving house, a visa or embassy appointment, paperwork at the bank, a child's school event, caring for a sick family member, or a family emergency. It can be taken at short notice, in half days, and does not need a reason beyond a short note.</p>
+<h3>Compassionate leave</h3>
+<p>If a close family member dies (partner, child, parent, sibling or grandparent), you can take up to <strong>5 working days of paid compassionate leave</strong>, in addition to your personal leave. Tell your manager; HR records the days and they do not reduce any of your balances. More time can be agreed with HR.</p>
+<h2>4.6 Parental leave</h2>
+<p>Acme's parental leave policy is the same in every country, and applies to birth, adoption and surrogacy, for parents of any gender. It has no yearly balance; it is approved once per child.</p>
+<table>
+  <tr><th></th><th>Primary caregiver</th><th>Secondary caregiver</th></tr>
+  <tr><td>Length</td><td>26 weeks</td><td>4 weeks</td></tr>
+  <tr><td>Pay</td><td>First 16 weeks at full base pay, then statutory pay where the country provides it (otherwise unpaid)</td><td>Full base pay for all 4 weeks</td></tr>
+  <tr><td>When</td><td>Can start up to 4 weeks before the expected due date</td><td>Within 12 months of the birth or adoption, in up to two blocks</td></tr>
+  <tr><td>Notice</td><td colspan="2">Tell HR at least 8 weeks before you plan to start, or as soon as you can for adoption</td></tr>
+</table>
+<p>You must have completed your probation period to receive the enhanced pay above; before that, statutory rights apply. Your job, or an equivalent one, is protected while you are on parental leave, and annual leave keeps building up as normal. After returning, primary caregivers can work a phased return at 60% of their hours for four weeks at full pay. Nursing parents get two paid 30-minute breaks a day for the first year, and the Dubai, Kochi and Bengaluru offices have a private parents' room.</p>
+<h2>4.7 Unpaid leave</h2>
+<p>You can ask for unpaid leave for anything not covered above, such as an extended trip, study or a family matter, once your annual leave for the year is used or planned. Up to 10 working days a year needs your manager's approval; longer periods (up to three months) also need your department head and HR. During unpaid leave you are not paid, and benefits continue, but the company does not make pension contributions for the unpaid period.</p>
+
+<!-- 5 -->
+<h1>5. Requesting and approving leave</h1>
+<h2>How to request leave</h2>
+<ol>
+  <li>Check your balance in the HR app, or ask the Acme Assistant ("How many days of annual leave do I have left?").</li>
+  <li>Agree the dates informally with your team, especially for leave of a week or longer.</li>
+  <li>Submit the request in the HR app with the leave type, dates and a short reason. The request shows as <strong>pending</strong>.</li>
+  <li>Your direct manager approves or rejects it. You get a notification either way. If your manager is away, the request goes to their manager.</li>
+</ol>
+<h2>Notice periods</h2>
+<table>
+  <tr><th>Leave</th><th>Minimum notice</th></tr>
+  <tr><td>Annual leave of 1 to 3 days</td><td>3 working days</td></tr>
+  <tr><td>Annual leave of more than 3 days</td><td>2 weeks</td></tr>
+  <tr><td>Annual leave of more than 10 days</td><td>4 weeks</td></tr>
+  <tr><td>Sick leave and personal leave</td><td>As soon as you can, by your normal start time</td></tr>
+  <tr><td>Parental leave</td><td>8 weeks (see section 4.6)</td></tr>
+</table>
+<h2>For managers: approving leave</h2>
+<ul>
+  <li>Respond to leave requests within <strong>3 working days</strong>. Requests not answered within 5 working days are escalated to your manager.</li>
+  <li>Approve requests unless there is a real business reason not to. Valid reasons include a <strong>release week</strong>, <strong>team coverage too low</strong> because others are already away, or the <strong>quarterly planning offsite</strong>. Always give the reason in the decision note and suggest other dates.</li>
+  <li>Managers can see the leave requests and balances of their <strong>direct reports</strong> only. HR can see everyone's. Use the HR app or ask the Acme Assistant ("Who in my team is off next week?" or "Which requests are waiting for my approval?").</li>
+  <li>Sick leave does not need approval; it is recorded, not requested.</li>
+</ul>
+<h2>Blackout periods</h2>
+<p>Each department may set up to <strong>two blackout weeks per quarter</strong>, for example around major releases or the quarterly planning offsite. Blackout weeks are announced at least six weeks in advance. Annual leave in a blackout week needs your department head's approval.</p>
+<h2>Cancelling or changing leave</h2>
+<p>You can cancel a pending or approved request in the HR app at any time before it starts; the days go back to your balance. To change the dates of approved leave, cancel it and submit a new request. If leave has already started, ask your manager to end it early; HR adjusts the record. Acme will only ask you to cancel approved leave in an emergency, and will reimburse any non-refundable travel or booking costs if it does.</p>
+
+<!-- 6 -->
+<h1>6. Public holidays 2026</h1>
+<p>Each office observes the public holidays of its own country and state. You follow the holidays of the office in your employment contract, even when you are working from another office or from home. If a holiday falls on a Saturday or Sunday, no extra day is given unless it is listed below as a substitute day. Some religious holidays depend on the moon sighting; if the official date moves, the office follows the official announcement.</p>
+<p>If you are asked to work on a public holiday, you receive a day off in lieu, to be taken within 60 days.</p>
+<h2>Dubai HQ (UAE)</h2>
+<table>
+  <tr><th>Date</th><th>Holiday</th></tr>
+  <tr><td>Thu 1 January</td><td>New Year's Day</td></tr>
+  <tr><td>Fri 20 to Sun 22 March</td><td>Eid al-Fitr and Eid al-Fitr holiday</td></tr>
+  <tr><td>Tue 26 May</td><td>Arafat Day</td></tr>
+  <tr><td>Wed 27 to Thu 28 May</td><td>Eid al-Adha and Eid al-Adha holiday</td></tr>
+  <tr><td>Tue 16 June</td><td>Islamic New Year</td></tr>
+  <tr><td>Tue 25 August</td><td>Prophet's Birthday</td></tr>
+  <tr><td>Tue 1 December</td><td>Commemoration Day</td></tr>
+  <tr><td>Wed 2 to Thu 3 December</td><td>National Day and National Day holiday</td></tr>
+</table>
+<h2>Kochi Office (Kerala, India)</h2>
+<table>
+  <tr><th>Date</th><th>Holiday</th></tr>
+  <tr><td>Mon 26 January</td><td>Republic Day</td></tr>
+  <tr><td>Fri 3 April</td><td>Good Friday</td></tr>
+  <tr><td>Wed 15 April</td><td>Vishu</td></tr>
+  <tr><td>Fri 1 May</td><td>May Day</td></tr>
+  <tr><td>Sat 15 August</td><td>Independence Day</td></tr>
+  <tr><td>Wed 26 August</td><td>Thiruvonam</td></tr>
+  <tr><td>Fri 2 October</td><td>Gandhi Jayanti</td></tr>
+  <tr><td>Sun 8 November</td><td>Deepavali</td></tr>
+  <tr><td>Fri 25 December</td><td>Christmas</td></tr>
+</table>
+<h2>Bengaluru Office (Karnataka, India)</h2>
+<table>
+  <tr><th>Date</th><th>Holiday</th></tr>
+  <tr><td>Wed 14 January</td><td>Makara Sankranti</td></tr>
+  <tr><td>Mon 26 January</td><td>Republic Day</td></tr>
+  <tr><td>Thu 19 March</td><td>Ugadi</td></tr>
+  <tr><td>Fri 1 May</td><td>May Day</td></tr>
+  <tr><td>Sat 15 August</td><td>Independence Day</td></tr>
+  <tr><td>Fri 2 October</td><td>Gandhi Jayanti</td></tr>
+  <tr><td>Sun 1 November</td><td>Karnataka Rajyotsava</td></tr>
+  <tr><td>Sun 8 November</td><td>Deepavali</td></tr>
+  <tr><td>Fri 25 December</td><td>Christmas</td></tr>
+</table>
+<h2>London Office (England, UK)</h2>
+<table>
+  <tr><th>Date</th><th>Holiday</th></tr>
+  <tr><td>Thu 1 January</td><td>New Year's Day</td></tr>
+  <tr><td>Fri 3 April</td><td>Good Friday</td></tr>
+  <tr><td>Mon 6 April</td><td>Easter Monday</td></tr>
+  <tr><td>Mon 4 May</td><td>Early May bank holiday</td></tr>
+  <tr><td>Mon 25 May</td><td>Spring bank holiday</td></tr>
+  <tr><td>Mon 31 August</td><td>Summer bank holiday</td></tr>
+  <tr><td>Fri 25 December</td><td>Christmas Day</td></tr>
+  <tr><td>Mon 28 December</td><td>Boxing Day (substitute day)</td></tr>
+</table>
+<h2>Company-wide day off</h2>
+<p>In addition to public holidays, every office closes on <strong>Acme Day</strong>, the company's birthday, on the first Friday of September (4 September 2026). It is a paid day off for everyone and does not come out of your leave balance.</p>
+
+<!-- 7 -->
+<h1>7. Pay and payroll</h1>
+<h2>Payday</h2>
+<p>Everyone is paid <strong>monthly, on the 25th</strong>, for the whole calendar month, in the currency of their office (AED, INR or GBP) by bank transfer. Your payslip is available in the HR app on payday. If you join or leave part-way through a month, you are paid for the calendar days you were employed in that month.</p>
+<p>Changes that affect pay (new bank details, unpaid leave, expense claims, address changes for tax) must reach Payroll by the <strong>15th of the month</strong> to be included that month; anything later is processed the following month.</p>
+<h2>What is on your payslip</h2>
+<table>
+  <tr><th>Line</th><th>What it means</th></tr>
+  <tr><td>Base pay</td><td>Your annual base salary divided by 12. Part-time staff receive base pay for their contracted hours (normally 60%).</td></tr>
+  <tr><td>Allowances</td><td>Fixed monthly allowances that depend on your country (see below).</td></tr>
+  <tr><td>Bonus</td><td>The annual performance bonus, paid once a year in March.</td></tr>
+  <tr><td>Gross pay</td><td>Base pay + allowances + bonus.</td></tr>
+  <tr><td>Tax</td><td>Income tax withheld for the government, where your country has it.</td></tr>
+  <tr><td>Deductions</td><td>Other employee deductions, such as pension or provident fund contributions.</td></tr>
+  <tr><td>Net pay</td><td>Gross pay − tax − deductions. This is what arrives in your bank account.</td></tr>
+</table>
+<h2>Allowances by country</h2>
+<ul>
+  <li><strong>UAE:</strong> a housing and transport allowance of <strong>30% of base pay</strong>, paid monthly.</li>
+  <li><strong>India:</strong> a house rent allowance (HRA) and flexible benefits allowance totalling <strong>25% of base pay</strong>, paid monthly. You can declare rent receipts to Payroll to reduce the tax withheld.</li>
+  <li><strong>UK:</strong> no percentage allowance. London-based staff receive a <strong>London weighting of GBP 250 a month</strong>.</li>
+</ul>
+<h2>Tax and deductions by country</h2>
+<ul>
+  <li><strong>UAE:</strong> there is no personal income tax and no employee deductions. Gross pay equals net pay.</li>
+  <li><strong>India:</strong> income tax (TDS) is withheld every month under the tax regime you choose in April. Deductions are your <strong>Employees' Provident Fund contribution of 12% of base pay</strong> (Acme adds a matching contribution) and <strong>professional tax of INR 200</strong> a month.</li>
+  <li><strong>UK:</strong> income tax and National Insurance are withheld through PAYE. Deductions are your <strong>workplace pension contribution of 5% of base pay</strong> (Acme adds 5%; see section 8).</li>
+</ul>
+<h2>Annual bonus</h2>
+<p>Permanent staff are eligible for an annual performance bonus, paid with the <strong>March payroll</strong> for the previous calendar year. The bonus is normally between <strong>4% and 15% of annual base salary</strong>, depending on Acme's results and your performance review rating. To be eligible you must have joined before 1 January of the year being assessed and still be employed, and not under notice, on 1 March. Contract staff are not eligible for the annual bonus.</p>
+<h2>Salary reviews</h2>
+<p>Salaries are reviewed once a year. New salaries take effect from the <strong>April payroll</strong>, based on the annual performance review, market data and Acme's results. A promotion during the year can come with a salary change from the month it takes effect.</p>
+<h2>Problems with your pay</h2>
+<p>If your payslip looks wrong, write to payroll@acme.test within 30 days with your employee code and the month. Underpayments are corrected within 5 working days by a separate transfer. Overpayments are recovered from the next payroll, or in instalments if the amount is large; Payroll will agree this with you first.</p>
+<h2>Salary advances</h2>
+<p>In an emergency you can ask for a one-time salary advance of up to one month's net pay, repaid over a maximum of six months. Requests go to your manager and then Finance.</p>
+
+<!-- 8 -->
+<h1>8. Benefits</h1>
+<p>Your benefits depend on the country of your office. Health cover and life cover start on your first day. For plans where you choose a coverage level, the costs below are <strong>your monthly contribution</strong>, deducted from pay; Acme pays the rest of the premium.</p>
+<h2>Coverage levels</h2>
+<p>Health and dental plans offer three coverage levels: <strong>Employee only</strong>, <strong>Employee + spouse</strong> (spouse or registered partner) and <strong>Family</strong> (you, your partner and your children up to age 25).</p>
+<h2>Health insurance</h2>
+<table>
+  <tr><th>Plan</th><th>Country</th><th>Provider</th><th>What it covers</th><th>Your monthly cost: employee / + spouse / family</th></tr>
+  <tr><td>UAE Health Essential</td><td>UAE</td><td>Gulf Shield Health</td><td>Inpatient and outpatient cover across the UAE, 10% co-pay on outpatient visits, maternity included.</td><td>AED 0 / 450 / 1,200</td></tr>
+  <tr><td>India Group Mediclaim</td><td>India</td><td>Malabar Care Insurance</td><td>Hospitalisation cover up to INR 5,00,000 per family per year, cashless at network hospitals.</td><td>INR 0 / 600 / 1,500</td></tr>
+  <tr><td>UK Private Medical</td><td>UK</td><td>Albion Health</td><td>Private medical insurance with fast-track diagnostics and mental health support.</td><td>GBP 0 / 45 / 95</td></tr>
+</table>
+<p>Health insurance is compulsory for everyone and you are enrolled automatically at the Employee-only level, free of charge. You can add your partner or family when you join or at open enrollment.</p>
+<h2>Dental and vision</h2>
+<table>
+  <tr><th>Plan</th><th>Country</th><th>Provider</th><th>What it covers</th><th>Your monthly cost: employee / + spouse / family</th></tr>
+  <tr><td>UAE Dental Plus</td><td>UAE</td><td>Gulf Shield Health</td><td>Routine check-ups, cleaning and 50% of major dental work up to AED 5,000 a year.</td><td>AED 60 / 120 / 220</td></tr>
+  <tr><td>UK Dental Cover</td><td>UK</td><td>Albion Health</td><td>Check-ups, hygienist visits and emergency treatment.</td><td>GBP 12 / 22 / 38</td></tr>
+  <tr><td>UK Vision Care</td><td>UK</td><td>ClearSight</td><td>Annual eye test and GBP 150 towards glasses or contact lenses.</td><td>GBP 5 / 9 / 14</td></tr>
+</table>
+<p>Dental and vision plans are optional. In India, routine dental and eye care is not insured; instead, you can claim up to INR 10,000 a year for dental or eye treatment through the flexible benefits allowance.</p>
+<h2>Life cover</h2>
+<p><strong>Group Life Cover</strong> from Meridian Life pays <strong>4 times your annual base salary</strong> to your nominated beneficiaries if you die while employed by Acme. It is fully paid by the company, covers everyone in every country, and starts on your first day. Please keep your beneficiary details up to date with HR.</p>
+<h2>Retirement</h2>
+<ul>
+  <li><strong>UK Workplace Pension</strong> (Thames Pension Trust): auto-enrolment. You pay <strong>5% of base pay</strong> and Acme adds <strong>5%</strong>. You are enrolled automatically on your first day; you can opt out within one month and get your contributions back, but you then lose the company contribution.</li>
+  <li><strong>India: Corporate NPS</strong> (National Pension System): voluntary. Acme contributes <strong>up to 10% of base pay</strong> to your NPS account, which is tax-deductible. This is in addition to the Employees' Provident Fund (section 7). You can join or change your contribution once a year in April.</li>
+  <li><strong>UAE:</strong> there is no pension scheme for expatriate staff; instead you receive an end-of-service gratuity when you leave (section 17). UAE nationals are enrolled in the national pension scheme as the law requires.</li>
+</ul>
+<h2>When you can change your benefits</h2>
+<ul>
+  <li><strong>When you join:</strong> choose your coverage levels and optional plans within <strong>30 days</strong> of your start date.</li>
+  <li><strong>Open enrollment:</strong> every year from <strong>1 to 30 November</strong>, for changes starting 1 January.</li>
+  <li><strong>Life events:</strong> within 30 days of marriage, divorce, a birth or adoption, or the loss of a partner's cover, you can change your coverage level straight away.</li>
+</ul>
+<p>Ask the Acme Assistant "What benefits am I enrolled in?" to see your current plans and monthly costs.</p>
+<h2>Other benefits</h2>
+<ul>
+  <li><strong>Employee Assistance Programme (EAP):</strong> free, confidential counselling, up to <strong>6 sessions per issue per year</strong>, by phone or video in English, Hindi, Malayalam and Arabic. Also legal and financial advice.</li>
+  <li><strong>Wellbeing allowance:</strong> AED 150, INR 1,500 or GBP 30 a month towards a gym, sports club or fitness app, claimed through expenses.</li>
+  <li><strong>Mobile phone:</strong> AED 200, INR 1,000 or GBP 30 a month towards your phone bill for staff who are on call or in customer-facing roles.</li>
+  <li><strong>Referral bonus:</strong> refer someone we hire and receive AED 5,000, INR 75,000 or GBP 1,500 after they pass probation.</li>
+</ul>
+
+<!-- 9 -->
+<h1>9. Expenses and business travel</h1>
+<h2>General rules</h2>
+<ul>
+  <li>Spend Acme's money as if it were your own. Choose the reasonable option, not the most expensive one.</li>
+  <li>Get approval from your manager <strong>before</strong> spending more than USD 200 (or local equivalent) on anything.</li>
+  <li>Submit expense claims in the expenses app with a receipt for every item within <strong>30 days</strong> of the expense. Claims older than 90 days are not reimbursed.</li>
+  <li>Approved claims are reimbursed with the next payroll if submitted by the 15th of the month.</li>
+  <li>Alcohol, fines (parking or speeding), personal entertainment and upgrades are not reimbursed.</li>
+</ul>
+<h2>Business travel</h2>
+<ul>
+  <li>All business travel must be approved by your manager and booked through Acme's travel desk (travel@acme.test) at least <strong>14 days</strong> in advance where possible.</li>
+  <li><strong>Flights:</strong> economy class for flights under 6 hours. Premium economy is allowed for flights of 6 hours or more. Business class needs approval from an executive.</li>
+  <li><strong>Hotels:</strong> up to USD 180 a night in most cities, USD 250 in London and Dubai. Book through the travel desk.</li>
+  <li><strong>Per diem:</strong> for meals and small expenses while travelling, you receive a daily allowance instead of claiming receipts: <strong>AED 250 in the UAE, INR 3,000 in India, GBP 60 in the UK</strong>, and USD 75 elsewhere. Meals paid by Acme or a customer reduce the per diem by a third each.</li>
+  <li><strong>Local transport:</strong> use public transport or a standard taxi or ride-hailing service. Mileage for your own car is paid at AED 1.0, INR 12 or GBP 0.45 per kilometre/mile as appropriate.</li>
+  <li>Travel insurance is provided automatically for business trips. Tell the travel desk about any visa needs at least four weeks before you travel.</li>
+</ul>
+<h2>Team events and client entertainment</h2>
+<p>Each team has a social budget of USD 40 per person per quarter. Client entertainment must be approved by your manager in advance and is limited to USD 75 per person, including Acme staff attending.</p>
+
+<!-- 10 -->
+<h1>10. Equipment, IT and information security</h1>
+<h2>Your equipment</h2>
+<p>On your first day you receive a laptop (MacBook Pro for Engineering and Design, MacBook Air or Windows laptop for other teams), a headset, and access to the tools you need. Engineers may also request a test phone. Equipment remains Acme property and must be returned when you leave.</p>
+<p>Laptops are replaced every <strong>four years</strong>, or sooner if they fail. Request new equipment or repairs through the IT helpdesk at it@acme.test.</p>
+<h2>Security rules everyone must follow</h2>
+<ul>
+  <li>Use the company password manager and a unique password of at least 14 characters for every account.</li>
+  <li><strong>Multi-factor authentication (MFA)</strong> is required on all company accounts. Use the authenticator app, not SMS.</li>
+  <li>Lock your screen whenever you leave your laptop, even in the office. Laptops lock automatically after 5 minutes.</li>
+  <li>Keep your operating system and apps up to date; IT pushes updates and you must restart within 3 days of being asked.</li>
+  <li>Never install pirated software or browser extensions that IT has not approved.</li>
+  <li>Customer data must stay in approved systems. Never copy production data to your laptop, a personal account or a USB drive.</li>
+  <li>Do not use public Wi-Fi without the company VPN.</li>
+</ul>
+<h2>Phishing and incidents</h2>
+<p>If you receive a suspicious email or message, do not click links or open attachments. Use the "Report phishing" button in your email, or forward it to security@acme.test. If you clicked something, tell the security team straight away: reporting quickly matters far more than the mistake, and no one is punished for reporting honestly.</p>
+<p><strong>Lost or stolen devices</strong> must be reported to security@acme.test within <strong>24 hours</strong>, so the device can be wiped remotely.</p>
+<h2>Using AI tools</h2>
+<p>You may use approved AI tools, including the Acme Assistant, for your work. Do not paste customer data, source code that is not open source, or other confidential information into AI tools that IT has not approved. You remain responsible for checking anything an AI tool produces before you use it.</p>
+<h2>Personal use</h2>
+<p>Reasonable personal use of your laptop and the internet is fine, as long as it is legal, does not interfere with your work, and does not involve storing large personal files. Acme may monitor company systems for security purposes, in line with section 16.</p>
+
+<!-- 11 -->
+<h1>11. Learning and development</h1>
+<p>Every employee has a yearly learning budget for courses, certifications, books and conferences related to their work:</p>
+<table>
+  <tr><th>Country</th><th>Learning budget per year</th></tr>
+  <tr><td>UAE</td><td>AED 5,000</td></tr>
+  <tr><td>India</td><td>INR 60,000</td></tr>
+  <tr><td>UK</td><td>GBP 1,200</td></tr>
+</table>
+<ul>
+  <li>Part-time staff receive the full budget. Contract staff receive half.</li>
+  <li>Spending over half of your budget on a single item needs your manager's approval.</li>
+  <li>You also get <strong>3 paid learning days a year</strong> to attend courses or conferences; these do not come out of your leave.</li>
+  <li>If Acme pays more than half of your yearly budget for a single certification and you resign within 12 months, you repay a share of the cost on a sliding scale (100% in the first 3 months, then reducing by a quarter every 3 months).</li>
+</ul>
+<p>Internal learning includes the Friday tech talks, the Acme Flow product school for new joiners, and a mentoring programme that pairs you with a colleague from another department.</p>
+
+<!-- 12 -->
+<h1>12. Performance, probation and promotions</h1>
+<h2>Probation</h2>
+<p>New permanent employees have a probation period of <strong>six months</strong> (three months for contract staff). Your manager meets you monthly during probation and confirms the outcome in writing before the end. Probation can be extended once, by up to three months. During probation the notice period is shorter (section 17).</p>
+<h2>Performance reviews</h2>
+<p>Acme runs two review cycles a year:</p>
+<ul>
+  <li><strong>Mid-year check-in (July):</strong> a conversation with your manager about progress, goals and development. No rating.</li>
+  <li><strong>Annual review (January):</strong> self-review, peer feedback from two to four colleagues, and your manager's review, ending with a rating that informs your bonus (paid in March) and salary review (from April).</li>
+</ul>
+<p>Ratings are: <em>Exceptional</em>, <em>Strong</em>, <em>Solid</em>, <em>Developing</em> and <em>Not yet meeting expectations</em>. Ratings are calibrated across each department so they are fair between teams.</p>
+<h2>One-to-ones</h2>
+<p>Every employee has a one-to-one with their manager at least every two weeks. It is your meeting: bring topics about your work, your growth, or anything that is in your way.</p>
+<h2>Promotions</h2>
+<p>Promotions are decided twice a year, in January and July, based on the career framework for your role. Your manager proposes the promotion with written evidence; a panel from your department reviews it. You can ask your manager at any time what you need to show to reach the next level.</p>
+<h2>Performance improvement</h2>
+<p>If performance falls below expectations, your manager will first discuss it with you informally. If it does not improve, a written performance improvement plan of 6 to 8 weeks sets clear goals and support. HR is involved at this stage.</p>
+
+<!-- 13 -->
+<h1>13. Dress code and workplace</h1>
+<h2>Dress code</h2>
+<p>Acme's dress code is <strong>smart casual</strong> in all offices. Jeans, chinos, shirts, t-shirts without offensive slogans, and clean trainers are all fine. Dress for comfort and for the day you have ahead.</p>
+<ul>
+  <li><strong>Customer meetings and events:</strong> business casual, or follow the customer's own dress code. In Dubai, customer meetings normally call for business attire (a jacket for men; smart office wear for women).</li>
+  <li><strong>Local culture:</strong> in the UAE, clothing in shared spaces should cover the shoulders and knees, in line with local custom.</li>
+  <li><strong>Religious and cultural dress</strong> is always welcome, including head coverings.</li>
+  <li><strong>Fridays</strong> are fully casual in every office, unless you have a customer meeting.</li>
+  <li>Safety footwear is required in the Dubai warehouse area and server room.</li>
+</ul>
+<h2>Our offices</h2>
+<ul>
+  <li>Desks are shared (hot desking). Book a desk in the office app on your team days and clear it at the end of the day.</li>
+  <li>Quiet zones are for focused work; take calls in phone booths or meeting rooms.</li>
+  <li>Food is available in every office: free breakfast on team days, fruit and drinks all day.</li>
+  <li>Visitors must be registered at reception and accompanied at all times.</li>
+  <li>Smoking and vaping are only allowed in the designated outdoor areas.</li>
+</ul>
+
+<!-- 14 -->
+<h1>14. Health, safety and wellbeing</h1>
+<h2>Health and safety</h2>
+<p>Everyone is responsible for keeping our workplaces safe. Report any hazard, accident or near miss to the office manager on the same day. Each office has trained first aiders and fire wardens, listed at reception and in the office app. Fire drills take place twice a year.</p>
+<p>If you work from home, complete the home workstation self-assessment in your first month. IT and HR can help you with equipment such as an external monitor, keyboard or chair (see the home office allowance in section 3).</p>
+<h2>Wellbeing</h2>
+<ul>
+  <li><strong>Employee Assistance Programme:</strong> free, confidential counselling (section 8), available 24 hours a day.</li>
+  <li><strong>Mental health first aiders</strong> in every office: trained colleagues you can talk to in confidence.</li>
+  <li><strong>No-meeting Fridays</strong> after 14:00 local time, to protect focus time.</li>
+  <li><strong>Right to disconnect:</strong> you are not expected to read or answer messages outside your working hours, except when you are on call. Schedule messages for the recipient's working hours where you can.</li>
+</ul>
+<h2>On-call</h2>
+<p>Engineers in the on-call rota receive an on-call allowance of AED 300, INR 4,000 or GBP 75 per week on call, plus time off in lieu for any incident work outside working hours longer than two hours.</p>
+
+<!-- 15 -->
+<h1>15. Respect at work, grievances and whistleblowing</h1>
+<h2>Equal opportunity and respect</h2>
+<p>Acme does not tolerate discrimination, harassment or bullying of any kind, including on the basis of gender, race, nationality, religion, age, disability, sexual orientation, marital or parental status. This applies in the office, at events, on business trips and online.</p>
+<p>Harassment includes unwanted conduct that violates someone's dignity or creates an intimidating, hostile or offensive environment, including jokes, comments, messages and physical contact.</p>
+<h2>Raising a concern or grievance</h2>
+<ol>
+  <li><strong>Informally:</strong> where you feel comfortable, raise the issue directly with the person or with your manager.</li>
+  <li><strong>Formally:</strong> write to your HR Business Partner or to hr@acme.test. HR acknowledges your grievance within 2 working days and arranges a meeting within 7 working days. You may bring a colleague to the meeting.</li>
+  <li><strong>Appeal:</strong> if you disagree with the outcome, you can appeal in writing within 10 working days to the Head of People, who appoints someone not previously involved.</li>
+</ol>
+<h2>Whistleblowing</h2>
+<p>If you suspect fraud, bribery, a serious safety risk, a data breach that is being hidden, or any illegal activity, report it to ethics@acme.test, or anonymously through the independent ethics hotline listed in the office app. Reports go directly to the Chief Financial Officer and an independent board member. Acme protects anyone who raises a concern in good faith from any retaliation.</p>
+
+<!-- 16 -->
+<h1>16. Your personal data and who can see it</h1>
+<p>Acme holds personal data about you to employ you and pay you: your contact details, contract, pay, bank details, leave, benefits and performance reviews. We handle it in line with the UAE Personal Data Protection Law, India's Digital Personal Data Protection Act and the UK GDPR.</p>
+<h2>Who can see what</h2>
+<table>
+  <tr><th>Who</th><th>What they can see</th></tr>
+  <tr><td>You</td><td>All of your own records: profile, leave balances and requests, payslips, benefits and holidays.</td></tr>
+  <tr><td>Your colleagues</td><td>Your name, job title, department, office, work email and manager, through the company directory. Nothing about your pay, leave or benefits.</td></tr>
+  <tr><td>Your manager</td><td>The directory information, plus your leave requests and balances and your employment details (start date, employment type and status). Not your pay or benefits.</td></tr>
+  <tr><td>People &amp; HR</td><td>Everything needed to run HR for everyone, including leave for all employees. Payroll staff see pay data.</td></tr>
+</table>
+<p>The Acme Assistant follows exactly the same rules: it answers questions using only the data that you are allowed to see, based on who is signed in. It cannot show you another person's pay, for example, however the question is asked.</p>
+<h2>Your rights</h2>
+<p>You can ask for a copy of the personal data Acme holds about you, ask for mistakes to be corrected, and, in some cases, ask for data to be deleted. Write to privacy@acme.test; we respond within 30 days. Employee records are kept for 6 years after you leave, then deleted, unless the law requires longer.</p>
+
+<!-- 17 -->
+<h1>17. Leaving Acme</h1>
+<h2>Notice periods</h2>
+<table>
+  <tr><th></th><th>UAE</th><th>India</th><th>UK</th></tr>
+  <tr><td>During probation</td><td>14 days</td><td>15 days</td><td>1 week</td></tr>
+  <tr><td>After probation</td><td>30 days</td><td>60 days</td><td>1 month</td></tr>
+  <tr><td>Managers and above</td><td>60 days</td><td>90 days</td><td>3 months</td></tr>
+</table>
+<p>Resignations must be given in writing to your manager, with a copy to hr@acme.test. Acme may agree a shorter notice period with you, or pay you in place of notice.</p>
+<h2>Untaken annual leave</h2>
+<p>Annual leave you have built up but not taken is paid in your final salary, calculated pro rata for the part of the year you worked. If you have taken more leave than you have earned, the extra days are deducted from your final pay. Your manager may ask you to use remaining leave during your notice period.</p>
+<h2>End-of-service gratuity (UAE)</h2>
+<p>Employees in the UAE with at least one year of continuous service receive an end-of-service gratuity as required by UAE labour law: <strong>21 days of basic salary for each of the first five years</strong>, and <strong>30 days of basic salary for each further year</strong>, up to a maximum of two years' total salary. It is paid with your final salary.</p>
+<h2>Gratuity (India)</h2>
+<p>Employees in India with at least five years of continuous service receive gratuity under the Payment of Gratuity Act: 15 days of the last drawn basic salary for each completed year of service.</p>
+<h2>Your last days</h2>
+<ul>
+  <li>Hand over your work in writing, in the team's documentation space.</li>
+  <li>Return your laptop, phone, access card and any other equipment on your last day.</li>
+  <li>HR invites you to an exit interview; your honest feedback helps us improve.</li>
+  <li>You receive a final payslip, a service letter confirming your dates and role, and, in the UK, a P45.</li>
+  <li>Health cover ends on your last day of employment (at the end of that month in the UK).</li>
+</ul>
+
+<!-- 18 -->
+<h1>18. Using the Acme Assistant</h1>
+<p>The Acme Assistant is our AI helper, available in the Acme mobile app by text or voice. It answers questions from this handbook and from your own HR records.</p>
+<h2>What you can ask</h2>
+<ul>
+  <li><strong>Policies:</strong> "What is the dress code?", "Do I need a doctor's note for two sick days?", "How does carry-over work?"</li>
+  <li><strong>Your own records:</strong> "How many days of annual leave do I have left?", "When is my next public holiday?", "What was my net pay last month?", "Which benefits am I enrolled in?"</li>
+  <li><strong>The directory:</strong> "Who is the finance manager?", "Find Arjun in Engineering."</li>
+  <li><strong>Managers:</strong> "Which leave requests are waiting for my approval?", "Who in my team is away next week?"</li>
+</ul>
+<h2>Good to know</h2>
+<ul>
+  <li>Policy answers show the handbook page they come from, so you can check the source.</li>
+  <li>The assistant can read your records but cannot yet submit, change or approve anything. Use the HR app for that.</li>
+  <li>It only sees what you are allowed to see (section 16). If it tells you it cannot access something, that is the access rule working, not a fault.</li>
+  <li>If an answer looks wrong, check the source and tell HR. The handbook and your HR records are the official reference, not the assistant.</li>
+</ul>
+
+<!-- 19 -->
+<section class="faq">
+<h1>19. Frequently asked questions</h1>
+<h3>How many sick days do I get?</h3>
+<p>15 paid sick days a year in the UAE, 12 in India and 10 in the UK (60% of that for part-time staff). You need a medical certificate if you are off sick for more than three consecutive working days. See section 4.4.</p>
+<h3>Can I carry over unused annual leave?</h3>
+<p>Yes, up to 5 days into the next year. Anything above 5 days is lost on 31 December. See section 4.3.</p>
+<h3>Why does my available leave differ from my remaining leave?</h3>
+<p>Available leave also subtracts requests that are still pending approval. Once a request is approved it counts as used; if it is rejected or cancelled the days come back.</p>
+<h3>Can I work from home every day?</h3>
+<p>Not by default. Acme is hybrid: three office days (Tuesday to Thursday) and up to two days at home, unless your offer says the role is fully remote. You can work from another country for up to 20 working days a year with approval. See section 3.</p>
+<h3>When is payday?</h3>
+<p>The 25th of every month. Payslips appear in the HR app the same day. See section 7.</p>
+<h3>When is the bonus paid?</h3>
+<p>With the March payroll, for the previous year. It is normally 4% to 15% of base salary, for permanent staff only. See section 7.</p>
+<h3>Do I pay for health insurance?</h3>
+<p>Not for yourself: Employee-only health cover is free in every country. Adding a partner or family has a monthly cost shown in section 8.</p>
+<h3>Is there a pension?</h3>
+<p>In the UK, the workplace pension (you 5%, Acme 5%). In India, the Provident Fund (12% each) plus an optional NPS with up to 10% from Acme. In the UAE, an end-of-service gratuity instead. See sections 8 and 17.</p>
+<h3>What is the dress code?</h3>
+<p>Smart casual, fully casual on Fridays, and business attire for customer meetings in Dubai. See section 13.</p>
+<h3>What do I do if I lose my laptop?</h3>
+<p>Report it to security@acme.test within 24 hours so it can be wiped. See section 10.</p>
+<h3>Who approves my leave if my manager is on holiday?</h3>
+<p>Your manager's manager. Requests not answered within 5 working days are escalated automatically. See section 5.</p>
+<h3>How much is the per diem when I travel?</h3>
+<p>AED 250 a day in the UAE, INR 3,000 in India, GBP 60 in the UK, and USD 75 elsewhere. See section 9.</p>
+<h3>Can I see my teammates' leave?</h3>
+<p>Only if you are their manager (direct reports only) or in HR. Colleagues see directory information only. See section 16.</p>
+</section>
+
+<!-- 20 -->
+<h1>20. Contacts</h1>
+<table>
+  <tr><th>For</th><th>Contact</th></tr>
+  <tr><td>Leave, benefits, policies, contracts</td><td>People &amp; HR: hr@acme.test</td></tr>
+  <tr><td>Payslips, tax, bank details</td><td>Payroll: payroll@acme.test</td></tr>
+  <tr><td>Expenses</td><td>Finance: finance@acme.test</td></tr>
+  <tr><td>Business travel and visas</td><td>Travel desk: travel@acme.test</td></tr>
+  <tr><td>Laptops, accounts, software</td><td>IT helpdesk: it@acme.test</td></tr>
+  <tr><td>Phishing, lost devices, security incidents</td><td>Security: security@acme.test</td></tr>
+  <tr><td>Your personal data</td><td>Privacy: privacy@acme.test</td></tr>
+  <tr><td>Fraud, bribery, serious concerns</td><td>Ethics: ethics@acme.test or the anonymous ethics hotline</td></tr>
+  <tr><td>Press and media</td><td>Marketing: marketing@acme.test</td></tr>
+  <tr><td>Legal questions</td><td>Legal: legal@acme.test</td></tr>
+</table>
+<p>In an emergency, call the local emergency number first: 999 in the UAE, 112 in India, 999 in the UK. Then tell your manager and the office manager.</p>
+<p style="margin-top:10mm;color:#5a6478">Acme Employee Handbook 2026, version 3.2. Acme is a fictional company; this handbook is sample content created for a software demo.</p>
+
+</body>
+</html>
