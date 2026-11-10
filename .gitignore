@@ -13,3 +13,7 @@
 node_modules/
 dist/
 *.log
+
+# Demo video production (scripts, recordings, audio): kept local, not published
+/demo-video/
+mobile/integration_test/demo_video_test.dart
