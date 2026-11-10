@@ -1,0 +1,15 @@
+# Secrets: real keys live only in .env files (see server/.env.example).
+.env
+.env.*
+!.env.example
+
+# Local tool settings
+.claude/
+.vscode/
+.idea/
+
+# OS and build clutter
+.DS_Store
+node_modules/
+dist/
+*.log

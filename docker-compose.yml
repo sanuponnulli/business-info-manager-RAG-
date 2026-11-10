@@ -4,7 +4,7 @@ services:
     # Must stay compatible with the `chromadb` npm client (3.x ↔ server 1.x).
     image: chromadb/chroma:1.5.9
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       # Chroma 1.x stores its database in /data; the named volume keeps it across restarts.
       - chroma-data:/data
@@ -16,7 +16,7 @@ services:
     # installed Postgres often already uses 5432.
     image: postgres:17.6-alpine
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     environment:
       - POSTGRES_USER=hr
       - POSTGRES_PASSWORD=hr
